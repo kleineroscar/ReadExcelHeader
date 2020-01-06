@@ -15,9 +15,19 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- */ 
+ */
 package de.oheimbrecht.ReadExcelHeader.ReadExcelHeader;
 
-public class ReadExcelHeaderData {
+import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.trans.step.BaseStepData;
+import org.pentaho.di.trans.step.StepDataInterface;
 
+public class ReadExcelHeaderData extends BaseStepData implements StepDataInterface {
+	public RowMetaInterface previousRowMeta;
+	public RowMetaInterface outputRowMeta;
+	public int fieldnr;
+
+	public ReadExcelHeaderData() {
+			super();
+		}
 }
