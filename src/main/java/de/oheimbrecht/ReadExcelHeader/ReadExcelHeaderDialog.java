@@ -27,7 +27,10 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.events.VerifyEvent;
+import org.eclipse.swt.events.VerifyListener;
 import org.eclipse.swt.graphics.Cursor;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
@@ -56,9 +59,10 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	// the dialog reads the settings from it when opening
 	// the dialog writes the settings to it when confirmed
 	private ReadExcelHeaderMeta meta;
-	private Label wLabelStepFilename;
+	private Label wLabelStepFilename, wLabelStepStartRow;
 	private CCombo wComboStepFilename;
-	private FormData wFormStepFilename;
+	private FormData wFormStepFilename, wFormLabelStepStartRow, wFormStepStartRow;
+	private Text wTextStartRow;
 	RowMetaInterface inputSteps;
 	private boolean gotPreviousFields = false;
 
@@ -163,13 +167,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			e1.printStackTrace();
 			new ErrorDialog(shell, Messages.getString("ReadExcelHeader.Step.Name"), e1.getStackTrace().toString(), e1);
 		}
-//			for (int i = 0; i < inputSteps.size(); i++) {
-//				wComboStepFilename.add(inputSteps.getValueMeta(i));
-//			}
-//		 		if(input.getStepMain()!=null)
-//		 		{
-//		 			wComboStepFilename.setText(input.getStepMain());
-//		 		}
+
 		props.setLook(wComboStepFilename);
 		wComboStepFilename.addModifyListener(lsMod);
 		wFormStepFilename = new FormData();
@@ -177,20 +175,61 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepFilename.right = new FormAttachment(100, 0);
 		wFormStepFilename.top = new FormAttachment(wStepname, margin);
 		wComboStepFilename.setLayoutData(wFormStepFilename);
-//		wComboStepFilename.addFocusListener(new FocusListener() {
-//			@Override
-//			public void focusLost(org.eclipse.swt.events.FocusEvent e) {
-//			}
-//
-//			@Override
-//			public void focusGained(org.eclipse.swt.events.FocusEvent e) {
-//				Cursor busy = new Cursor(shell.getDisplay(), SWT.CURSOR_WAIT);
-//				shell.setCursor(busy);
-//				getFields();
-//				shell.setCursor(null);
-//				busy.dispose();
-//			}
-//		});
+		
+		// Stepname line
+		wLabelStepStartRow = new Label(shell, SWT.RIGHT);
+		wLabelStepStartRow.setText(Messages.getString("ReadExcelHeaderDialog.StartRow.Label"));
+		props.setLook(wLabelStepStartRow);
+		wFormLabelStepStartRow = new FormData();
+		wFormLabelStepStartRow.left = new FormAttachment(0, 0);
+		wFormLabelStepStartRow.right = new FormAttachment(middle, -margin);
+		wFormLabelStepStartRow.top = new FormAttachment(wComboStepFilename, margin);
+		wLabelStepStartRow.setLayoutData(wFormLabelStepStartRow);
+	
+		wTextStartRow = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wTextStartRow.setText("0");
+		props.setLook(wStepname);
+		wTextStartRow.addVerifyListener(new VerifyListener() {
+
+			@Override
+			public void verifyText(VerifyEvent e) {
+				 Text text = (Text)e.getSource();
+
+		         // get old text and create new text by using the VerifyEvent.text
+		         final String oldS = text.getText();
+		         if (oldS.length()==0) {
+		        	 return;
+		         }
+		         String newS = oldS.substring(0, e.start) + e.text + oldS.substring(e.end);
+
+		         boolean isValid = true;
+		         try
+		         {
+		             if (Integer.parseInt(newS) < 0) {
+		            	 throw new NumberFormatException();
+		             }
+		         }
+		         catch(NumberFormatException ex)
+		         {
+		        	 isValid = false;
+		         }
+
+//		         System.out.println(newS);
+
+		         if(!isValid)
+		             e.doit = false;
+				
+			}
+			
+		});
+		props.setLook(wTextStartRow);
+		wTextStartRow.addModifyListener(lsMod);
+		wFormStepStartRow = new FormData();
+		wFormStepStartRow.left = new FormAttachment(middle, 0);
+		wFormStepStartRow.top = new FormAttachment(wComboStepFilename, margin);
+		wFormStepStartRow.right = new FormAttachment(100, 0);
+		wTextStartRow.setLayoutData(wFormStepStartRow);
+
 
 		// Add listeners for cancel and OK
 		lsCancel = new Listener() {
@@ -262,6 +301,13 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			gotPreviousFields = true;
 		}
 	}
+	
+	// Read data from input
+	public void getData()
+	{
+		wTextStartRow.setText(meta.getStartRow());
+		wComboStepFilename.select(Integer.parseInt(meta.getFilenameField()));
+	}
 
 	private void cancel() {
 		// The "stepname" variable will be the return value for the open() method.
@@ -280,8 +326,11 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		// The "stepname" variable will be the return value for the open() method.
 		// Setting to step name from the dialog control
 		stepname = wStepname.getText();
-		meta.setFilenameField("filename");
+		meta.setFilenameField(String.valueOf(wComboStepFilename.getSelectionIndex()));
 
+		String startRowText = wTextStartRow.getText();
+		meta.setStartRow((startRowText.length() > 0) ? startRowText : "0");
+		meta.setChanged(true);
 		// close the SWT dialog window
 		dispose();
 	}

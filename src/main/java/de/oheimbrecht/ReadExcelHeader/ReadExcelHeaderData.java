@@ -25,7 +25,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 public class ReadExcelHeaderData extends BaseStepData implements StepDataInterface {
 	public RowMetaInterface previousRowMeta;
 	public RowMetaInterface outputRowMeta;
-	public int fieldnr;
+//	public int fieldnr;
 
 	public ReadExcelHeaderData() {
 			super();

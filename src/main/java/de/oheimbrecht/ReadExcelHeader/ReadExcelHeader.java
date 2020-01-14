@@ -50,6 +50,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	
 	private String environmentFilename;
 	private String realFilename;
+	private int fieldnr;
+	private int startRow;
 	private ReadExcelHeaderData data;
 	private ReadExcelHeaderMeta meta;
 	
@@ -104,12 +106,14 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 
 			// use meta.getFields() to change it, so it reflects the output row structure
 			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
-			data.fieldnr = data.previousRowMeta.indexOfValue("filename");//meta.getFilenameField());
-			if (data.fieldnr < 0) {
-				throw new KettleValueException("CouldNotFindField :" + meta.getFilenameField());
+//			data.fieldnr = data.previousRowMeta.indexOfValue("filename");//meta.getFilenameField());
+			fieldnr = Integer.parseInt(meta.getFilenameField());
+			startRow = Integer.parseInt(meta.getStartRow());
+			if (fieldnr < 0) {
+				throw new KettleValueException("CouldNotFindField :" + data.previousRowMeta.getFieldNames()[Integer.parseInt(meta.getFilenameField())].toString());
 			}
 		}
-		environmentFilename = data.previousRowMeta.getString(r, data.fieldnr);
+		environmentFilename = data.previousRowMeta.getString(r, fieldnr);
 		try {
 			URL url = new URL(environmentFilename);
 			realFilename = url.getPath();
@@ -130,7 +134,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		}
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
 			XSSFSheet sheet = workbook1.getSheetAt(i);
-			XSSFRow row = sheet.getRow(0);
+			XSSFRow row = sheet.getRow(startRow);
 			for (Cell myCell : row) {
 				outputRow[0] = realFilename.toString();
 				outputRow[1] = workbook1.getSheetName(i);
