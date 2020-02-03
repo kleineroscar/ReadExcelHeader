@@ -18,6 +18,7 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,7 @@ import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.injection.Injection;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
@@ -120,7 +122,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	@Override
 	public boolean excludeFromCopyDistributeVerification()
 	{
-		return true;
+		return false;
 	}
 	
 	/**
@@ -159,7 +161,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
 
-		inputRowMeta.clear();
+//		inputRowMeta.clear();
+		
+		List newRowMeta = new ArrayList<ValueMetaInterface>();
+//		RowMetaInterface newRowMeta = (RowMetaInterface) new RowMeta();
 		/*
 		 * This implementation appends the outputField to the row-stream
 		 */
@@ -173,7 +178,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		vWorkbook.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vWorkbook);
+//		newRowMeta.addValueMeta(vWorkbook);
+		newRowMeta.add(vWorkbook);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vSheet = new ValueMetaString("sheetName");
@@ -185,7 +191,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		vSheet.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vSheet);
+		newRowMeta.add(vSheet);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnName = new ValueMetaString("columnName");
@@ -197,7 +203,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		vColumnName.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnName);
+		newRowMeta.add(vColumnName);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnType = new ValueMetaString("columnType");
@@ -209,7 +215,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		vColumnType.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnType);
+		newRowMeta.add(vColumnType);
 		
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat");
@@ -221,7 +227,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		vColumnDataFormat.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnDataFormat);
+		newRowMeta.add(vColumnDataFormat);
+		
+		
+		inputRowMeta.setValueMetaList(newRowMeta);
 	}
 
 	/**
@@ -265,6 +274,22 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			remarks.add(cr);
 		} else {
 			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No input received from other steps!", stepMeta);
+			remarks.add(cr);
+		}
+		
+		if (!filenameField.isEmpty()) {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a filename.", stepMeta);
+			remarks.add(cr);
+		} else {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No filename received!", stepMeta);
+			remarks.add(cr);
+		}
+
+		if (!startRow.isEmpty()) {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", stepMeta);
+			remarks.add(cr);
+		} else {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
 			remarks.add(cr);
 		}
 	}

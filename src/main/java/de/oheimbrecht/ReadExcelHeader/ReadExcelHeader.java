@@ -24,16 +24,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 
+import org.apache.poi.sl.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.*;
 
-import org.pentaho.di.core.RowSet;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
+import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
@@ -44,7 +45,6 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
-import org.xml.sax.SAXException;
 
 public class ReadExcelHeader extends BaseStep implements StepInterface {
 	
@@ -92,29 +92,22 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		// in the row structure that only need to be done once
 		if (first) {
 			first = false;
-			// clone the input row structure and place it in our data object
-			data.previousRowMeta = getInputRowMeta().clone();
-			data.outputRowMeta = (RowMetaInterface) getInputRowMeta().clone();
-//			for (int i=0;i<data.outputRowMeta.getValueMetaList().size();i++) {
-//				data.outputRowMeta.removeValueMeta(i);
-//			}
-			data.outputRowMeta.clear();
-			data.outputRowMeta.addValueMeta(0, new ValueMetaString("workbookName"));
-			data.outputRowMeta.addValueMeta(1, new ValueMetaString("sheetName"));
-			data.outputRowMeta.addValueMeta(2, new ValueMetaString("columnName"));
-			data.outputRowMeta.addValueMeta(3, new ValueMetaString("columnType"));
-			data.outputRowMeta.addValueMeta(3, new ValueMetaString("columnDataFormat"));
+			data.outputRowMeta = (RowMetaInterface) new RowMeta();
+			addFieldstoRowMeta(data.outputRowMeta, getStepname());
 
 			// use meta.getFields() to change it, so it reflects the output row structure
-			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
-//			data.fieldnr = data.previousRowMeta.indexOfValue("filename");//meta.getFilenameField());
-			fieldnr = Integer.parseInt(meta.getFilenameField());
-			startRow = Integer.parseInt(meta.getStartRow());
+//			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
+			try {
+				fieldnr = Integer.parseInt(meta.getFilenameField());
+				startRow = Integer.parseInt(meta.getStartRow());
+			} catch (Exception e) {
+				throw new KettleValueException("An error occurred while parsing the step settings.");
+			}
 			if (fieldnr < 0) {
-				throw new KettleValueException("CouldNotFindField :" + data.previousRowMeta.getFieldNames()[Integer.parseInt(meta.getFilenameField())].toString());
+				throw new KettleValueException("CouldNotFindField :" + getInputRowMeta().getFieldNames()[Integer.parseInt(meta.getFilenameField())].toString());
 			}
 		}
-		environmentFilename = data.previousRowMeta.getString(r, fieldnr);
+		environmentFilename = getInputRowMeta().getString(r, fieldnr);
 		try {
 			URL url = new URL(environmentFilename);
 			realFilename = url.getPath();
@@ -130,33 +123,37 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			file1InputStream = new FileInputStream(new File(realFilename));
 			workbook1 = new XSSFWorkbook(file1InputStream);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new KettleValueException("Could not parse the workbook");
 		}
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
 			XSSFSheet sheet = workbook1.getSheetAt(i);
 			XSSFRow row = sheet.getRow(startRow);
+			log.logDebug("Found a sheet with the corresponding header row: " + row.getRowNum() + "/" + row.getLastCellNum());
 			for (Cell myCell : row) {
+				log.logDebug("Processing the next cell with number: " + myCell.getColumnIndex());
 				try {
-				outputRow[0] = realFilename.toString();
-				outputRow[1] = workbook1.getSheetName(i);
-				outputRow[2] = myCell.toString();
-				outputRow[3] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellTypeEnum();
-				outputRow[4] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellStyle().getDataFormatString();
+					outputRow[0] = realFilename.toString();
+					outputRow[1] = workbook1.getSheetName(i);
+					outputRow[2] = myCell.toString();
+					outputRow[3] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellTypeEnum();
+					outputRow[4] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellStyle().getDataFormatString();
 				} catch (Exception e) {
 					log.logBasic(e.getMessage());
 				}
 				// put the row to the output row stream
+				log.logDebug("Created the following row: " + Arrays.toString(outputRow));
 				putRow(data.outputRowMeta, outputRow);
 			}
-
-			
-			
-
 			// log progress if it is time to to so
 			if (checkFeedback(getLinesRead())) {
 				logBasic("Processed Rows: " + getLinesRead()); // Some basic logging
 			}
+		}
+		try {
+			workbook1.close();
+			file1InputStream.close();
+		} catch (IOException e) {
+			throw new KettleValueException("Could not close workbook");
 		}
 		// indicate that processRow() should be called again
 		return true;
@@ -233,5 +230,21 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 
 		// modify the row structure and add the field this step generates
 		r.addValueMeta(vDataFormat);
+	}
+	
+	public void run() {
+		try {
+			while (processRow(meta, data) && !isStopped())
+				;
+		} catch (Exception e) {
+			logError("Unexpected error : " + e.toString());
+			// logError(Const.getStackTracker(e));
+			setErrors(1);
+			stopAll();
+		} finally {
+			dispose(meta, data);
+			logBasic("Finished, processing " + getLinesRead() + " input rows");
+			markStop();
+		}
 	}
 }

@@ -153,7 +153,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		lsCancel   = new Listener() { public void handleEvent(Event e) { cancel(); } };
 		lsOK       = new Listener() { public void handleEvent(Event e) { ok();     } };
 		
-		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextStartRow);
+		
         
 
 		// Filename Input Step
@@ -166,7 +166,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepFilename.top = new FormAttachment(wStepname, margin);
 		wLabelStepFilename.setLayoutData(wFormStepFilename);
 		wComboStepFilename = new CCombo(shell, SWT.BORDER | SWT.READ_ONLY);
-		wComboStepFilename.setText("");
+//		wComboStepFilename.setText("");
 		try {
 			inputSteps = transMeta.getPrevStepFields(stepMeta);
 			wComboStepFilename.setItems(inputSteps.getFieldNames());
@@ -194,41 +194,41 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wLabelStepStartRow.setLayoutData(wFormLabelStepStartRow);
 	
 		wTextStartRow = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-		wTextStartRow.setText("0");
+//		wTextStartRow.setText("0");
 		props.setLook(wStepname);
-		wTextStartRow.addVerifyListener(new VerifyListener() {
-
-			@Override
-			public void verifyText(VerifyEvent e) {
-				 Text text = (Text)e.getSource();
-
-		         // get old text and create new text by using the VerifyEvent.text
-		         final String oldS = text.getText();
-		         if (oldS.length()==0) {
-		        	 return;
-		         }
-		         String newS = oldS.substring(0, e.start) + e.text + oldS.substring(e.end);
-
-		         boolean isValid = true;
-		         try
-		         {
-		             if (Integer.parseInt(newS) < 0) {
-		            	 throw new NumberFormatException();
-		             }
-		         }
-		         catch(NumberFormatException ex)
-		         {
-		        	 isValid = false;
-		         }
-
-//		         System.out.println(newS);
-
-		         if(!isValid)
-		             e.doit = false;
-				
-			}
-			
-		});
+//		wTextStartRow.addVerifyListener(new VerifyListener() {
+//
+//			@Override
+//			public void verifyText(VerifyEvent e) {
+//				 Text text = (Text)e.getSource();
+//
+//		         // get old text and create new text by using the VerifyEvent.text
+//		         final String oldS = text.getText();
+//		         if (oldS.length()==0) {
+//		        	 return;
+//		         }
+//		         String newS = oldS.substring(0, e.start) + e.text + oldS.substring(e.end);
+//
+//		         boolean isValid = true;
+//		         try
+//		         {
+//		             if (Integer.parseInt(newS) < 0) {
+//		            	 throw new NumberFormatException();
+//		             }
+//		         }
+//		         catch(NumberFormatException ex)
+//		         {
+//		        	 isValid = false;
+//		         }
+//
+////		         System.out.println(newS);
+//
+//		         if(!isValid)
+//		             e.doit = false;
+//				
+//			}
+//			
+//		});
 		props.setLook(wTextStartRow);
 		wTextStartRow.addModifyListener(lsMod);
 		wFormStepStartRow = new FormData();
@@ -236,6 +236,8 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepStartRow.top = new FormAttachment(wComboStepFilename, margin);
 		wFormStepStartRow.right = new FormAttachment(100, 0);
 		wTextStartRow.setLayoutData(wFormStepStartRow);
+		
+		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextStartRow);
 
 
 		// Add listeners for cancel and OK
@@ -316,8 +318,12 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	public void getData()
 	{
 		wTextStartRow.setText(meta.getStartRow());
-		wComboStepFilename.select(Integer.parseInt(meta.getFilenameField()));
-	}
+		try {
+			wComboStepFilename.select(Integer.parseInt(meta.getFilenameField()));
+		} catch (Exception e) {
+		}
+		
+		}
 
 	private void cancel() {
 		// The "stepname" variable will be the return value for the open() method.
