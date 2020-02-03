@@ -103,6 +103,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			data.outputRowMeta.addValueMeta(1, new ValueMetaString("sheetName"));
 			data.outputRowMeta.addValueMeta(2, new ValueMetaString("columnName"));
 			data.outputRowMeta.addValueMeta(3, new ValueMetaString("columnType"));
+			data.outputRowMeta.addValueMeta(3, new ValueMetaString("columnDataFormat"));
 
 			// use meta.getFields() to change it, so it reflects the output row structure
 			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
@@ -136,16 +137,20 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			XSSFSheet sheet = workbook1.getSheetAt(i);
 			XSSFRow row = sheet.getRow(startRow);
 			for (Cell myCell : row) {
+				try {
 				outputRow[0] = realFilename.toString();
 				outputRow[1] = workbook1.getSheetName(i);
 				outputRow[2] = myCell.toString();
-				outputRow[3] = myCell.getCellTypeEnum();
-				
+				outputRow[3] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellTypeEnum();
+				outputRow[4] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellStyle().getDataFormatString();
+				} catch (Exception e) {
+					log.logBasic(e.getMessage());
+				}
+				// put the row to the output row stream
 				putRow(data.outputRowMeta, outputRow);
 			}
-//	    	outputRow[data.outputFieldIndex] = "Hello World!";
 
-			// put the row to the output row stream
+			
 			
 
 			// log progress if it is time to to so
@@ -216,5 +221,17 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 
 		// modify the row structure and add the field this step generates
 		r.addValueMeta(vColumnType);
+		
+		// a value meta object contains the meta data for a field
+		ValueMetaInterface vDataFormat = new ValueMetaString("columnDataFormat");
+
+		// setting trim type to "both"
+		vDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+
+		// the name of the step that adds this field
+		vDataFormat.setOrigin(origin);
+
+		// modify the row structure and add the field this step generates
+		r.addValueMeta(vDataFormat);
 	}
 }

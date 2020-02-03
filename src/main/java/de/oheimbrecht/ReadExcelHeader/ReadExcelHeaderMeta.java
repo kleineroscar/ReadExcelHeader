@@ -51,7 +51,7 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
-@Step( id = "ReadExcelHeader", image = "check_ok.svg",
+@Step( id = "ReadExcelHeader", image = "REH.svg",
 i18nPackageName = "de.oheimbrecht.ReadExcelHeader", name = "ReadExcelHeader.Step.Name",
 description = "ReadExcelHeader.Step.Description",
 categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Utility",
@@ -210,6 +210,18 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnType);
+		
+		// a value meta object contains the meta data for a field
+		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat");
+
+		// setting trim type to "both"
+		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+
+		// the name of the step that adds this field
+		vColumnDataFormat.setOrigin(name);
+
+		// modify the row structure and add the field this step generates
+		inputRowMeta.addValueMeta(vColumnDataFormat);
 	}
 
 	/**

@@ -51,6 +51,7 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.LabelText;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 
@@ -145,8 +146,15 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wOK = new Button(shell, SWT.PUSH);
 		wOK.setText(Messages.getString("System.Button.OK"));
 		wCancel = new Button(shell, SWT.PUSH);
-		wCancel.setText(Messages.getString("System.Button.CANCEL"));
-		setButtonPositions(new Button[] { wOK, wCancel }, margin, null);
+		wCancel.setText(Messages.getString("System.Button.Cancel")); //$NON-NLS-1$
+//		setButtonPositions(new Button[] { wOK, wCancel }, margin, null);
+		
+		// Add listeners
+		lsCancel   = new Listener() { public void handleEvent(Event e) { cancel(); } };
+		lsOK       = new Listener() { public void handleEvent(Event e) { ok();     } };
+		
+		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextStartRow);
+        
 
 		// Filename Input Step
 		wLabelStepFilename = new Label(shell, SWT.RIGHT);
@@ -163,7 +171,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			inputSteps = transMeta.getPrevStepFields(stepMeta);
 			wComboStepFilename.setItems(inputSteps.getFieldNames());
 		} catch (KettleStepException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 			new ErrorDialog(shell, Messages.getString("ReadExcelHeader.Step.Name"), e1.getStackTrace().toString(), e1);
 		}
@@ -252,6 +259,8 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			}
 		};
 		wStepname.addSelectionListener(lsDef);
+		wComboStepFilename.addSelectionListener(lsDef);
+		wTextStartRow.addSelectionListener(lsDef);
 
 		// Detect X or ALT-F4 or something that kills this window and cancel the dialog
 		// properly
@@ -267,6 +276,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 		// restore the changed flag to original value, as the modify listeners fire
 		// during dialog population
+		getData();
 		meta.setChanged(changed);
 
 		// open dialog and enter event loop
