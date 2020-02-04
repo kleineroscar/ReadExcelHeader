@@ -119,11 +119,11 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		startRow = "0";
 	}
 
-	@Override
-	public boolean excludeFromCopyDistributeVerification()
-	{
-		return false;
-	}
+//	@Override
+//	public boolean excludeFromCopyDistributeVerification()
+//	{
+//		return false;
+//	}
 	
 	/**
 	 * This method is used when a step is duplicated in Spoon. It needs to return a
@@ -161,76 +161,55 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
 
-//		inputRowMeta.clear();
+		inputRowMeta.clear();
 		
-		List newRowMeta = new ArrayList<ValueMetaInterface>();
-//		RowMetaInterface newRowMeta = (RowMetaInterface) new RowMeta();
 		/*
 		 * This implementation appends the outputField to the row-stream
 		 */
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vWorkbook = new ValueMetaString("workbookName");
 
-		// setting trim type to "both"
-		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
 		// the name of the step that adds this field
 		vWorkbook.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-//		newRowMeta.addValueMeta(vWorkbook);
-		newRowMeta.add(vWorkbook);
+		inputRowMeta.addValueMeta(vWorkbook);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vSheet = new ValueMetaString("sheetName");
-
-		// setting trim type to "both"
-		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// the name of the step that adds this field
 		vSheet.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		newRowMeta.add(vSheet);
+		inputRowMeta.addValueMeta(vSheet);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnName = new ValueMetaString("columnName");
-
-		// setting trim type to "both"
-		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// the name of the step that adds this field
 		vColumnName.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		newRowMeta.add(vColumnName);
+		inputRowMeta.addValueMeta(vColumnName);
 
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnType = new ValueMetaString("columnType");
-
-		// setting trim type to "both"
-		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// the name of the step that adds this field
 		vColumnType.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		newRowMeta.add(vColumnType);
+		inputRowMeta.addValueMeta(vColumnType);
 		
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat");
-
-		// setting trim type to "both"
-		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
+		
 		// the name of the step that adds this field
 		vColumnDataFormat.setOrigin(name);
 
 		// modify the row structure and add the field this step generates
-		newRowMeta.add(vColumnDataFormat);
-		
-		
-		inputRowMeta.setValueMetaList(newRowMeta);
+		inputRowMeta.addValueMeta(vColumnDataFormat);
 	}
 
 	/**

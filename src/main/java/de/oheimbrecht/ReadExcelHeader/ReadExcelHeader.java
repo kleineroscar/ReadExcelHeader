@@ -52,8 +52,12 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	private String realFilename;
 	private int fieldnr;
 	private int startRow;
-	private ReadExcelHeaderData data;
-	private ReadExcelHeaderMeta meta;
+//	private ReadExcelHeaderMeta meta;
+//	private ReadExcelHeaderData data;
+	
+	
+	InputStream file1InputStream = null;
+	XSSFWorkbook workbook1 = null;
 	
 	
 	public ReadExcelHeader(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
@@ -64,17 +68,21 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	
 	public boolean init(StepMetaInterface smi, StepDataInterface sdi) {
 		// Casting to step-specific implementation classes is safe
-		meta = (ReadExcelHeaderMeta) smi;
-		data = (ReadExcelHeaderData) sdi;
-		return super.init(smi, sdi);
+		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
+		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
+		if (super.init(meta, data)) {
+			first = true;
+			return true;
+		} 
+		return false;
 	}
 
 	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
 
 		// safely cast the step settings (meta) and runtime info (data) to specific
 		// implementations
-		meta = (ReadExcelHeaderMeta) smi;
-		data = (ReadExcelHeaderData) sdi;
+		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
+		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
 
 		// get incoming row, getRow() potentially blocks waiting for more rows, returns
 		// null if no more rows expected
@@ -92,11 +100,10 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		// in the row structure that only need to be done once
 		if (first) {
 			first = false;
-			data.outputRowMeta = (RowMetaInterface) new RowMeta();
-			addFieldstoRowMeta(data.outputRowMeta, getStepname());
+			data.outputRowMeta = (RowMetaInterface) getInputRowMeta().clone();
 
 			// use meta.getFields() to change it, so it reflects the output row structure
-//			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
+			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
 			try {
 				fieldnr = Integer.parseInt(meta.getFilenameField());
 				startRow = Integer.parseInt(meta.getStartRow());
@@ -115,30 +122,44 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			realFilename = environmentFilename;
 		}
 		// generate output row, make it correct size
-		Object[] outputRow = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
+		Object[] outputRow = RowDataUtil.allocateRowData(5);
 
-		InputStream file1InputStream = null;
-		XSSFWorkbook workbook1 = null;
 		try {
 			file1InputStream = new FileInputStream(new File(realFilename));
 			workbook1 = new XSSFWorkbook(file1InputStream);
 		} catch (IOException e) {
 			throw new KettleValueException("Could not parse the workbook");
 		}
+		
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
 			XSSFSheet sheet = workbook1.getSheetAt(i);
 			XSSFRow row = sheet.getRow(startRow);
-			log.logDebug("Found a sheet with the corresponding header row: " + row.getRowNum() + "/" + row.getLastCellNum());
-			for (Cell myCell : row) {
-				log.logDebug("Processing the next cell with number: " + myCell.getColumnIndex());
+			log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/" + row.getLastCellNum());
+			for (short j=row.getFirstCellNum();j<row.getLastCellNum();j++) {
 				try {
+					log.logDebug("Processing the next cell with number: " + j);
+					Cell cellBelow = sheet.getRow(startRow + 1).getCell(row.getCell(j).getColumnIndex());
+					log.logDebug("Created cellBelow");
 					outputRow[0] = realFilename.toString();
+					log.logRowlevel("Got workbook name: " + outputRow[0]);
 					outputRow[1] = workbook1.getSheetName(i);
-					outputRow[2] = myCell.toString();
-					outputRow[3] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellTypeEnum();
-					outputRow[4] = sheet.getRow(startRow + 1).getCell(myCell.getColumnIndex()).getCellStyle().getDataFormatString();
+					log.logRowlevel("Got sheet name: " + outputRow[1]);
+					outputRow[2] = row.getCell(j).toString();
+					log.logRowlevel("Got cell header: " + outputRow[2]);
+					try {
+						outputRow[3] = cellBelow.getCellTypeEnum();
+						log.logRowlevel("Got cell type from cellBelow: " + outputRow[3]);
+						outputRow[4] = cellBelow.getCellStyle().getDataFormatString();
+						log.logRowlevel("Got cell data format from cellBelow: " + outputRow[4]);
+					} catch (Exception e) {
+						outputRow[3] = "No data";
+						outputRow[4] = "No data";
+					}
 				} catch (Exception e) {
-					log.logBasic(e.getMessage());
+					log.logError("Some error while getting the values. With i=" + String.valueOf(i) + "and j=" + String.valueOf(j));
+					
+					log.logError(e.getMessage());
+					throw new KettleException(e.getMessage());
 				}
 				// put the row to the output row stream
 				log.logDebug("Created the following row: " + Arrays.toString(outputRow));
@@ -149,12 +170,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 				logBasic("Processed Rows: " + getLinesRead()); // Some basic logging
 			}
 		}
-		try {
-			workbook1.close();
-			file1InputStream.close();
-		} catch (IOException e) {
-			throw new KettleValueException("Could not close workbook");
-		}
+
 		// indicate that processRow() should be called again
 		return true;
 	}
@@ -162,89 +178,39 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
 
 		// Casting to step-specific implementation classes is safe
-		meta = (ReadExcelHeaderMeta) smi;
-		data = (ReadExcelHeaderData) sdi;
+		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
+		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
 
 		// Add any step-specific initialization that may be needed here
+		fieldnr = -1;
+		startRow = -1;
+		realFilename = null;
+		environmentFilename = null;
+		try {
+			workbook1.close();
+			file1InputStream.close();
+		} catch (Exception e) {
+//			throw new KettleException("Could not close workbook");
+			log.logBasic("Could not dispose workbook.\n" + e.getMessage());
+		}
 
 		// Call superclass dispose()
-		super.dispose(smi, sdi);
-	}
-
-	private void addFieldstoRowMeta(RowMetaInterface r, String origin) {
-		ValueMetaInterface vWorkbook = new ValueMetaString("workbookName");
-
-		// setting trim type to "both"
-		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// the name of the step that adds this field
-		vWorkbook.setOrigin(origin);
-
-		// modify the row structure and add the field this step generates
-		r.addValueMeta(vWorkbook);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vSheet = new ValueMetaString("sheetName");
-
-		// setting trim type to "both"
-		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// the name of the step that adds this field
-		vSheet.setOrigin(origin);
-
-		// modify the row structure and add the field this step generates
-		r.addValueMeta(vSheet);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnName = new ValueMetaString("columnName");
-
-		// setting trim type to "both"
-		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// the name of the step that adds this field
-		vColumnName.setOrigin(origin);
-
-		// modify the row structure and add the field this step generates
-		r.addValueMeta(vColumnName);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnType = new ValueMetaString("columnType");
-
-		// setting trim type to "both"
-		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// the name of the step that adds this field
-		vColumnType.setOrigin(origin);
-
-		// modify the row structure and add the field this step generates
-		r.addValueMeta(vColumnType);
-		
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vDataFormat = new ValueMetaString("columnDataFormat");
-
-		// setting trim type to "both"
-		vDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// the name of the step that adds this field
-		vDataFormat.setOrigin(origin);
-
-		// modify the row structure and add the field this step generates
-		r.addValueMeta(vDataFormat);
+		super.dispose(meta, data);
 	}
 	
-	public void run() {
-		try {
-			while (processRow(meta, data) && !isStopped())
-				;
-		} catch (Exception e) {
-			logError("Unexpected error : " + e.toString());
-			// logError(Const.getStackTracker(e));
-			setErrors(1);
-			stopAll();
-		} finally {
-			dispose(meta, data);
-			logBasic("Finished, processing " + getLinesRead() + " input rows");
-			markStop();
-		}
-	}
+//	public void run() {
+//		try {
+//			while (processRow(meta, data) && !isStopped())
+//				;
+//		} catch (Exception e) {
+//			logError("Unexpected error : " + e.toString());
+//			// logError(Const.getStackTracker(e));
+//			setErrors(1);
+//			stopAll();
+//		} finally {
+//			dispose(meta, data);
+//			logBasic("Finished, processing " + getLinesRead() + " input rows");
+//			markStop();
+//		}
+//	}
 }

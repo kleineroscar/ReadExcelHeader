@@ -191,24 +191,15 @@
 									message="Installed the plugin in PDI installation in ${pdi.home}. To test, please restart Spoon." />
 
 								<!-- remove previous installations -->
-								<!-- <delete dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
+								<delete dir="${pdi.home}/plugins/steps/${project.artifactId}" />
 								
 
 								<!-- put fresh files in place -->
-<!-- 								<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
+ 								<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
 								
-<!-- 								<unzip -->
-<!-- 									src="${project.build.directory}/${project.artifactId}-${project.version}.zip" -->
-<!-- 									dest="${pdi.home}/plugins/steps/" /> -->
-									
-								<!-- create lib folder -->
-<!-- 								<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}/lib" /> -->
-								
-								<!-- copy avro, avro tools, and jare into the lib folder -->
-								<!-- <copy todir="${pdi.home}/plugins/steps/${project.artifactId}/lib">
-									<fileset refid="" />
-								</copy>
-								-->
+ 								<unzip
+ 									src="${project.build.directory}/${project.artifactId}-${project.version}.zip"
+ 									dest="${pdi.home}/plugins/steps/" />
 							</target>
 						</configuration>
 					</execution>
