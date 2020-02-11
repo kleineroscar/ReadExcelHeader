@@ -5,7 +5,7 @@
     <artifactId>pentaho-ce-jar-parent-pom</artifactId>
     <version>9.0.0.0-SNAPSHOT</version>
   </parent>
-  <groupId>com.oheimbrecht</groupId>
+  <groupId>de.oheimbrecht</groupId>
   <artifactId>ReadExcelHeader</artifactId>
   <version>1.0.0</version>
   <name>Read Excel Header</name>

@@ -25,19 +25,13 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Collections;
 
-import org.apache.poi.sl.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.*;
 
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
-import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStep;
@@ -52,8 +46,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	private String realFilename;
 	private int fieldnr;
 	private int startRow;
-//	private ReadExcelHeaderMeta meta;
-//	private ReadExcelHeaderData data;
+	private ReadExcelHeaderMeta meta;
+	private ReadExcelHeaderData data;
 	
 	
 	InputStream file1InputStream = null;
@@ -68,9 +62,9 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	
 	public boolean init(StepMetaInterface smi, StepDataInterface sdi) {
 		// Casting to step-specific implementation classes is safe
-		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
-		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
-		if (super.init(meta, data)) {
+		meta = (ReadExcelHeaderMeta) smi;
+		data = (ReadExcelHeaderData) sdi;
+		if (super.init(smi, sdi)) {
 			first = true;
 			return true;
 		} 
@@ -81,8 +75,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 
 		// safely cast the step settings (meta) and runtime info (data) to specific
 		// implementations
-		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
-		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
+		meta = (ReadExcelHeaderMeta) smi;
+		data = (ReadExcelHeaderData) sdi;
 
 		// get incoming row, getRow() potentially blocks waiting for more rows, returns
 		// null if no more rows expected
@@ -132,13 +126,21 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		}
 		
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
-			XSSFSheet sheet = workbook1.getSheetAt(i);
-			XSSFRow row = sheet.getRow(startRow);
-			log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/" + row.getLastCellNum());
+			XSSFSheet sheet;
+			XSSFRow row;
+			
+			try {
+				sheet = workbook1.getSheetAt(i);
+				row = sheet.getRow(startRow);
+				log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/" + row.getLastCellNum());
+			} catch (Exception e) {
+				log.logError("Unable to read sheet or row.\n Maybe the row given is empty.\n" + e.getMessage());
+				throw new KettleValueException("Could not read sheet.");
+			}
 			for (short j=row.getFirstCellNum();j<row.getLastCellNum();j++) {
 				try {
 					log.logDebug("Processing the next cell with number: " + j);
-					Cell cellBelow = sheet.getRow(startRow + 1).getCell(row.getCell(j).getColumnIndex());
+					XSSFCell cellBelow = sheet.getRow(startRow + 1).getCell(row.getCell(j).getColumnIndex());
 					log.logDebug("Created cellBelow");
 					outputRow[0] = realFilename.toString();
 					log.logRowlevel("Got workbook name: " + outputRow[0]);
@@ -170,6 +172,13 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 				logBasic("Processed Rows: " + getLinesRead()); // Some basic logging
 			}
 		}
+		
+		try {
+			workbook1.close();
+			file1InputStream.close();
+		} catch (Exception e) {
+			log.logError("Could not dispose workbook.\n" + e.getMessage());
+		}
 
 		// indicate that processRow() should be called again
 		return true;
@@ -178,39 +187,17 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi) {
 
 		// Casting to step-specific implementation classes is safe
-		ReadExcelHeaderMeta meta = (ReadExcelHeaderMeta) smi;
-		ReadExcelHeaderData data = (ReadExcelHeaderData) sdi;
+		meta = (ReadExcelHeaderMeta) smi;
+		data = (ReadExcelHeaderData) sdi;
 
 		// Add any step-specific initialization that may be needed here
-		fieldnr = -1;
-		startRow = -1;
-		realFilename = null;
-		environmentFilename = null;
-		try {
-			workbook1.close();
-			file1InputStream.close();
-		} catch (Exception e) {
-//			throw new KettleException("Could not close workbook");
-			log.logBasic("Could not dispose workbook.\n" + e.getMessage());
-		}
+//		fieldnr = -1;
+//		startRow = -1;
+//		realFilename = null;
+//		environmentFilename = null;
+
 
 		// Call superclass dispose()
-		super.dispose(meta, data);
+		super.dispose(smi, sdi);
 	}
-	
-//	public void run() {
-//		try {
-//			while (processRow(meta, data) && !isStopped())
-//				;
-//		} catch (Exception e) {
-//			logError("Unexpected error : " + e.toString());
-//			// logError(Const.getStackTracker(e));
-//			setErrors(1);
-//			stopAll();
-//		} finally {
-//			dispose(meta, data);
-//			logBasic("Finished, processing " + getLinesRead() + " input rows");
-//			markStop();
-//		}
-//	}
 }

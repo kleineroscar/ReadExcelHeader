@@ -18,7 +18,7 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +31,6 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleDatabaseException;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.row.RowMeta;
@@ -65,10 +64,6 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	private String filenameField;
 	@Injection(name = "ROW_TO_START_ON")
 	private String startRow;
-
-	public ReadExcelHeaderMeta() {
-		super();
-	}
 	
 	/**
 	 * Called by Spoon to get a new instance of the SWT dialog for the step. A
@@ -82,7 +77,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 * @return new instance of a dialog for this step
 	 */
 	public StepDialogInterface getDialog(Shell shell, StepMetaInterface meta, TransMeta transMeta, String name) {
-	    return new ReadExcelHeaderDialog( shell, meta, transMeta, name );
+		return new ReadExcelHeaderDialog( shell, meta, transMeta, name );
 	}
 
 	/**
@@ -119,11 +114,11 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		startRow = "0";
 	}
 
-//	@Override
-//	public boolean excludeFromCopyDistributeVerification()
-//	{
-//		return false;
-//	}
+	@Override
+	public boolean excludeFromCopyDistributeVerification()
+	{
+		return true;
+	}
 	
 	/**
 	 * This method is used when a step is duplicated in Spoon. It needs to return a
@@ -141,6 +136,12 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.startRow = startRow;
 		
 		return retval;
+	}
+	
+	// For compatibility with 7.x
+	@Override
+	public String getDialogClassName() {
+		return ReadExcelHeaderDialog.class.getName();
 	}
 
 	/**
@@ -160,53 +161,63 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
-
+   
 		inputRowMeta.clear();
 		
 		/*
 		 * This implementation appends the outputField to the row-stream
 		 */
 		// a value meta object contains the meta data for a field
-		ValueMetaInterface vWorkbook = new ValueMetaString("workbookName");
+		ValueMetaInterface vWorkbook = new ValueMetaString("workbookName", 500, -1);
 
 		// the name of the step that adds this field
 		vWorkbook.setOrigin(name);
+		
+		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vWorkbook);
 
 		// a value meta object contains the meta data for a field
-		ValueMetaInterface vSheet = new ValueMetaString("sheetName");
+		ValueMetaInterface vSheet = new ValueMetaString("sheetName", 500, -1);
 
 		// the name of the step that adds this field
 		vSheet.setOrigin(name);
+		
+		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vSheet);
 
 		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnName = new ValueMetaString("columnName");
+		ValueMetaInterface vColumnName = new ValueMetaString("columnName", 500, -1);
 
 		// the name of the step that adds this field
 		vColumnName.setOrigin(name);
+		
+		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnName);
 
 		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnType = new ValueMetaString("columnType");
+		ValueMetaInterface vColumnType = new ValueMetaString("columnType", 500, -1);
 
 		// the name of the step that adds this field
 		vColumnType.setOrigin(name);
+		
+		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnType);
 		
 		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat");
+		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat", 500, -1);
 		
 		// the name of the step that adds this field
 		vColumnDataFormat.setOrigin(name);
+		
+		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnDataFormat);
@@ -289,7 +300,6 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		this.startRow = StartRow;
 	}
 
-	@Override
 	public String getXML() {
 		StringBuilder retval = new StringBuilder(500);
 		retval.append("      ").append(XMLHandler.addTagValue("filenameField", filenameField));
