@@ -5,6 +5,25 @@ This fixes the problem of not knowing the structure of an excel file before read
 
 Tested in PDI 8.3
 
+How to build
+--------------
+
+pentaho-hadoop-shims uses the maven framework. 
+
+
+#### Pre-requisites for building the project:
+* Maven, version 3+
+* Java JDK 1.8
+* This [settings.xml](https://raw.githubusercontent.com/pentaho/maven-parent-poms/master/maven-support-files/settings.xml) in your <user-home>/.m2 directory
+
+#### Building it
+
+This is a maven project, and to build it use the following command
+
+```
+$ mvn clean package install
+```
+
 Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements. See the NOTICE file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file to you under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
 
 http://www.apache.org/licenses/LICENSE-2.0
