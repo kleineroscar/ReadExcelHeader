@@ -65,6 +65,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	@Injection(name = "ROW_TO_START_ON")
 	private String startRow;
 	
+	public ReadExcelHeaderMeta() {
+		super();
+	}
+	
 	/**
 	 * Called by Spoon to get a new instance of the SWT dialog for the step. A
 	 * standard implementation passing the arguments to the constructor of the step
@@ -114,11 +118,11 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		startRow = "0";
 	}
 
-	@Override
-	public boolean excludeFromCopyDistributeVerification()
-	{
-		return true;
-	}
+//	@Override
+//	public boolean excludeFromCopyDistributeVerification()
+//	{
+//		return true;
+//	}
 	
 	/**
 	 * This method is used when a step is duplicated in Spoon. It needs to return a
@@ -161,8 +165,6 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
-   
-		inputRowMeta.clear();
 		
 		/*
 		 * This implementation appends the outputField to the row-stream

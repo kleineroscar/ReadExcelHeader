@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.pentaho</groupId>
     <artifactId>pentaho-ce-jar-parent-pom</artifactId>
-    <version>9.0.0.0-SNAPSHOT</version>
+    <version>9.1.0.0-SNAPSHOT</version>
   </parent>
   <groupId>de.oheimbrecht</groupId>
   <artifactId>ReadExcelHeader</artifactId>
@@ -23,8 +23,8 @@
 	<properties>
 		<license.licenseName>apache_v2</license.licenseName>
 		
-		<pdi.version>8.3.0.0-SNAPSHOT</pdi.version>
-		<pdi.home>C:\Users\Z0041TTM\Programme\pdi-ce-8.3.0.0-371\data-integration</pdi.home>
+		<pdi.version>9.0.0.0-SNAPSHOT</pdi.version>
+		<pdi.home>/Volumes/SD/Programme/data-integration-9.0</pdi.home>
 
 		<!-- Pentaho dependencies -->
 		<org.eclipse.swt.version>4.6</org.eclipse.swt.version>
@@ -273,19 +273,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>pentaho-kettle</groupId>
-			<artifactId>kettle-engine</artifactId>
-			<version>${pdi.version}</version>
-			<classifier>tests</classifier>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<artifactId>*</artifactId>
-					<groupId>*</groupId>
-				</exclusion>
-			</exclusions>
-		</dependency>
 
 	</dependencies>
 </project>
