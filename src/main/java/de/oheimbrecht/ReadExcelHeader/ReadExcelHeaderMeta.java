@@ -18,7 +18,6 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +32,7 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.injection.Injection;
-import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaString;
@@ -58,6 +57,8 @@ description = "ReadExcelHeader.Step.Description",
 categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Utility",
 documentationUrl = "https://github.com/kleineroscar/ReadExcelHeader" )
 
+
+@InjectionSupported( localizationPrefix = "ReadExcelHeader.Injection.")
 public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterface {
 	/** Field to read from */
 	@Injection(name = "FIELD_OF_FILENAMES")
@@ -304,8 +305,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 	public String getXML() {
 		StringBuilder retval = new StringBuilder(500);
-		retval.append("      ").append(XMLHandler.addTagValue("filenameField", filenameField));
-		retval.append("      ").append(XMLHandler.addTagValue("startRow", startRow));
+		retval.append("   " + XMLHandler.addTagValue("filenamefield", filenameField));
+		retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
 		return retval.toString();
 	}
 	
@@ -314,8 +315,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		{
 			try
 			{
-				filenameField =  XMLHandler.getTagValue(stepnode, "filenameField");
-				startRow =  XMLHandler.getTagValue(stepnode, "startRow");
+				filenameField =  XMLHandler.getTagValue(stepnode, "filenamefield");
+				startRow =  XMLHandler.getTagValue(stepnode, "startrow");
 			}
 			catch(Exception e)
 			{
@@ -327,8 +328,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	{
 		try
 		{
-			filenameField = rep.getStepAttributeString(id_step, "filenameField");
-			startRow = rep.getStepAttributeString(id_step, "startRow");
+			filenameField = rep.getStepAttributeString(id_step, "filenamefield");
+			startRow = rep.getStepAttributeString(id_step, "startrow");
 		}
 		catch(KettleDatabaseException dbe)
 		{
@@ -344,8 +345,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	{
 		try
 		{
-			rep.saveStepAttribute(id_transformation, id_step, "filenameField", filenameField);
-			rep.saveStepAttribute(id_transformation, id_step, "startRow", startRow);
+			rep.saveStepAttribute(id_transformation, id_step, "filenamefield", filenameField);
+			rep.saveStepAttribute(id_transformation, id_step, "startrow", startRow);
 		}
 		catch(KettleDatabaseException dbe)
 		{

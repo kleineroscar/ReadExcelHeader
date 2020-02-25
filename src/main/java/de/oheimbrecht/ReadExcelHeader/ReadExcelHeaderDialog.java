@@ -22,7 +22,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.FocusListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -33,7 +32,6 @@ import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
@@ -41,7 +39,6 @@ import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
-import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.TransMeta;
@@ -61,7 +58,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private FormData wFormStepFilename, wFormLabelStepStartRow, wFormStepStartRow;
 	private Text wTextStartRow;
 	RowMetaInterface inputSteps;
-	private boolean gotPreviousFields = false;
 
 	public ReadExcelHeaderDialog(Shell parent, Object in, TransMeta transMeta, String sname) {
 		super(parent, (BaseStepMeta) in, transMeta, sname);
@@ -147,9 +143,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		// Add listeners
 		lsCancel   = new Listener() { public void handleEvent(Event e) { cancel(); } };
 		lsOK       = new Listener() { public void handleEvent(Event e) { ok();     } };
-		
-		
-        
 
 		// Filename Input Step
 		wLabelStepFilename = new Label(shell, SWT.RIGHT);
@@ -188,7 +181,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wLabelStepStartRow.setLayoutData(wFormLabelStepStartRow);
 	
 		wTextStartRow = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
-//		wTextStartRow.setText("0");
 		props.setLook(wStepname);
 //		wTextStartRow.addVerifyListener(new VerifyListener() {
 //
@@ -273,7 +265,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		// restore the changed flag to original value, as the modify listeners fire
 		// during dialog population
 		getData();
-//		meta.setChanged(changed);
 
 		// open dialog and enter event loop
 		shell.open();
@@ -288,25 +279,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		// The "stepname" variable is inherited from BaseStepDialog
 		return stepname;
 	}
-
-//	private void getFields() {
-//		if (!gotPreviousFields) {
-//			try {
-//				String field = wComboStepFilename.getText();
-//				RowMetaInterface r = transMeta.getPrevStepFields(stepname);
-//				if (r != null) {
-//					wComboStepFilename.setItems(r.getFieldNames());
-//				}
-//				if (field != null) {
-//					wComboStepFilename.setText(field);
-//				}
-//			} catch (KettleException ke) {
-//				new ErrorDialog(shell, "failed to get fields", "FieldSplitterDialog.FailedToGetFields.DialogMessage",
-//						ke);
-//			}
-//			gotPreviousFields = true;
-//		}
-//	}
 	
 	// Read data from input
 	public void getData()

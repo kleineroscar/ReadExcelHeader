@@ -57,8 +57,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			Trans trans) {
 		super(stepMeta, stepDataInterface, copyNr, transMeta, trans);
 		
-//		meta = (ReadExcelHeaderMeta) getStepMeta().getStepMetaInterface();
-//		data = (ReadExcelHeaderData) stepDataInterface;
+		meta = (ReadExcelHeaderMeta) getStepMeta().getStepMetaInterface();
+		data = (ReadExcelHeaderData) stepDataInterface;
 	}
 	
 	
@@ -101,7 +101,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			log.logDebug("outputRowMeta before adding: " + data.outputRowMeta);
 
 			// use meta.getFields() to change it, so it reflects the output row structure
-			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, null, null);
+			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore);
 			log.logDebug("outputRowMeta after adding: " + data.outputRowMeta);
 			try {
 				fieldnr = Integer.parseInt(meta.getFilenameField());
@@ -114,7 +114,6 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			}
 		}
 		environmentFilename = getInputRowMeta().getString(r, fieldnr);
-//		environmentFilename = data.outputRowMeta.getString(r, fieldnr);
 		try {
 			URL url = new URL(environmentFilename);
 			realFilename = url.getPath();
@@ -122,10 +121,6 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			realFilename = environmentFilename;
 			log.logDebug("used environment filename");
 		}
-		
-		// generate output row, make it correct size
-//		Object[] outputRow = RowDataUtil.allocateRowData(5);
-		Object[] outputRow = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
 
 		try {
 			file1InputStream = new FileInputStream(new File(realFilename));
@@ -147,24 +142,27 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 				throw new KettleValueException("Could not read sheet.");
 			}
 			for (short j=row.getFirstCellNum();j<row.getLastCellNum();j++) {
+				// generate output row, make it correct size
+				Object[] outputRow = RowDataUtil.createResizedCopy(r, data.outputRowMeta.size());
 				try {
+					int lastMeta = data.outputRowMeta.size();
 					log.logDebug("Processing the next cell with number: " + j);
 					XSSFCell cellBelow = sheet.getRow(startRow + 1).getCell(row.getCell(j).getColumnIndex());
 					log.logDebug("Created cellBelow");
-					outputRow[data.outputRowMeta.size() - 5] = realFilename.toString();
-					log.logRowlevel("Got workbook name: " + outputRow[data.outputRowMeta.size() - 5] + " setting in " + String.valueOf(data.outputRowMeta.size() - 5));
-					outputRow[data.outputRowMeta.size() - 4] = workbook1.getSheetName(i);
-					log.logRowlevel("Got sheet name: " + outputRow[data.outputRowMeta.size() - 4] + " setting in " + String.valueOf(data.outputRowMeta.size() - 4));
-					outputRow[data.outputRowMeta.size() - 3] = row.getCell(j).toString();
-					log.logRowlevel("Got cell header: " + outputRow[data.outputRowMeta.size() - 3] + " setting in " + String.valueOf(data.outputRowMeta.size() - 3));
+					outputRow[lastMeta - 5] = realFilename.toString();
+					log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in " + String.valueOf(lastMeta - 5));
+					outputRow[lastMeta - 4] = workbook1.getSheetName(i);
+					log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in " + String.valueOf(lastMeta - 4));
+					outputRow[lastMeta - 3] = row.getCell(j).toString();
+					log.logRowlevel("Got cell header: " + outputRow[lastMeta - 3] + " setting in " + String.valueOf(lastMeta - 3));
 					try {
-						outputRow[data.outputRowMeta.size() - 2] = cellBelow.getCellTypeEnum();
-						log.logRowlevel("Got cell type from cellBelow: " + outputRow[data.outputRowMeta.size() - 2] + " setting in " + String.valueOf(data.outputRowMeta.size() - 2));
-						outputRow[data.outputRowMeta.size() - 1] = cellBelow.getCellStyle().getDataFormatString();
-						log.logRowlevel("Got cell data format from cellBelow: " + outputRow[data.outputRowMeta.size() - 1] + " setting in " + String.valueOf(data.outputRowMeta.size() - 1));
+						outputRow[lastMeta - 2] = cellBelow.getCellTypeEnum();
+						log.logRowlevel("Got cell type from cellBelow: " + outputRow[lastMeta - 2] + " setting in " + String.valueOf(lastMeta - 2));
+						outputRow[lastMeta - 1] = cellBelow.getCellStyle().getDataFormatString();
+						log.logRowlevel("Got cell data format from cellBelow: " + outputRow[lastMeta - 1] + " setting in " + String.valueOf(lastMeta - 1));
 					} catch (Exception e) {
-						outputRow[data.outputRowMeta.size() - 2] = "No data";
-						outputRow[data.outputRowMeta.size() - 1] = "No data";
+						outputRow[lastMeta - 2] = "No data";
+						outputRow[lastMeta - 1] = "No data";
 					}
 				} catch (Exception e) {
 					log.logError("Some error while getting the values. With i=" + String.valueOf(i) + "and j=" + String.valueOf(j));
@@ -184,7 +182,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		
 		try {
 			workbook1.close();
-			file1InputStream.close();
+			// file1InputStream.close();
 		} catch (Exception e) {
 			log.logError("Could not dispose workbook.\n" + e.getMessage());
 		}
@@ -200,13 +198,13 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 		data = (ReadExcelHeaderData) sdi;
 
 		// Add any step-specific initialization that may be needed here
-//		fieldnr = -1;
-//		startRow = -1;
-//		realFilename = null;
-//		environmentFilename = null;
-
+		try {
+			file1InputStream.close();
+		} catch (IOException e) {
+			log.logError("Could not dispose FileInputStream.\n" + e.getMessage());
+		}
 
 		// Call superclass dispose()
-		super.dispose(smi, sdi);
+		super.dispose(smi, sdi);	
 	}
 }
