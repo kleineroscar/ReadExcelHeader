@@ -53,10 +53,10 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	// the dialog reads the settings from it when opening
 	// the dialog writes the settings to it when confirmed
 	private ReadExcelHeaderMeta meta;
-	private Label wLabelStepFilename, wLabelStepStartRow;
+	private Label wLabelStepFilename, wLabelStepStartRow, wLabelStepSampleRows;
 	private CCombo wComboStepFilename;
-	private FormData wFormStepFilename, wFormLabelStepStartRow, wFormStepStartRow;
-	private Text wTextStartRow;
+	private FormData wFormStepFilename, wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows;
+	private Text wTextStartRow, wTextSampleRows;
 	RowMetaInterface inputSteps;
 
 	public ReadExcelHeaderDialog(Shell parent, Object in, TransMeta transMeta, String sname) {
@@ -222,6 +222,26 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepStartRow.top = new FormAttachment(wComboStepFilename, margin);
 		wFormStepStartRow.right = new FormAttachment(100, 0);
 		wTextStartRow.setLayoutData(wFormStepStartRow);
+
+		// sample rows line
+		wLabelStepSampleRows = new Label(shell, SWT.RIGHT);
+		wLabelStepSampleRows.setText(Messages.getString("ReadExcelHeaderDialog.SampleRows.Label"));
+		props.setLook(wLabelStepSampleRows);
+		wFormLabelStepSampleRows = new FormData();
+		wFormLabelStepSampleRows.left = new FormAttachment(0, 0);
+		wFormLabelStepSampleRows.right = new FormAttachment(middle, -margin);
+		wFormLabelStepSampleRows.top = new FormAttachment(wTextStartRow, margin);
+		wLabelStepSampleRows.setLayoutData(wFormLabelStepSampleRows);
+		
+		wTextSampleRows = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		props.setLook(wStepname);
+		props.setLook(wTextSampleRows);
+		wTextSampleRows.addModifyListener(lsMod);
+		wFormStepSampleRows = new FormData();
+		wFormStepSampleRows.left = new FormAttachment(middle, 0);
+		wFormStepSampleRows.top = new FormAttachment(wTextStartRow, margin);
+		wFormStepSampleRows.right = new FormAttachment(100, 0);
+		wTextSampleRows.setLayoutData(wFormStepSampleRows);
 		
 		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextStartRow);
 
@@ -284,6 +304,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	public void getData()
 	{
 		wTextStartRow.setText(meta.getStartRow());
+		wTextSampleRows.setText(meta.getSampleRows());
 		try {
 			wComboStepFilename.select(Integer.parseInt(meta.getFilenameField()));
 		} catch (Exception e) {
@@ -311,6 +332,9 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 		String startRowText = wTextStartRow.getText();
 		meta.setStartRow((startRowText.length() > 0) ? startRowText : "0");
+
+		String sampleRowsText = wTextSampleRows.getText();
+		meta.setSampleRows((sampleRowsText.length() > 0) ? sampleRowsText : "1");
 		
 		meta.setChanged();
 		// close the SWT dialog window

@@ -65,6 +65,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	private String filenameField;
 	@Injection(name = "ROW_TO_START_ON")
 	private String startRow;
+	@Injection(name = "NUMBER_OF_ROWS_TO_SAMPLE")
+	private String sampleRows;
 	
 	public ReadExcelHeaderMeta() {
 		super();
@@ -117,6 +119,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public void setDefault() {
 		filenameField = "";
 		startRow = "0";
+		sampleRows = "1";
 	}
 
 //	@Override
@@ -139,6 +142,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		ReadExcelHeaderMeta retval = (ReadExcelHeaderMeta) super.clone();
 		retval.filenameField = filenameField;
 		retval.startRow = startRow;
+		retval.sampleRows = sampleRows;
 		
 		return retval;
 	}
@@ -285,6 +289,14 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
 			remarks.add(cr);
 		}
+
+		if (!sampleRows.isEmpty()) {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received number of rows to sample on.", stepMeta);
+			remarks.add(cr);
+		} else {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No number of sample rows received!", stepMeta);
+			remarks.add(cr);
+		}
 	}
 
 	public String getFilenameField() {
@@ -303,10 +315,19 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		this.startRow = StartRow;
 	}
 
+	public String getSampleRows() {
+		return sampleRows;
+	}
+
+	public void setSampleRows(String sampleRows) {
+		this.sampleRows = sampleRows;
+	}
+
 	public String getXML() {
 		StringBuilder retval = new StringBuilder(500);
 		retval.append("   " + XMLHandler.addTagValue("filenamefield", filenameField));
 		retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
+		retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
 		return retval.toString();
 	}
 	
@@ -315,8 +336,9 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		{
 			try
 			{
-				filenameField =  XMLHandler.getTagValue(stepnode, "filenamefield");
-				startRow =  XMLHandler.getTagValue(stepnode, "startrow");
+				filenameField = XMLHandler.getTagValue(stepnode, "filenamefield");
+				startRow = XMLHandler.getTagValue(stepnode, "startrow");
+				sampleRows = XMLHandler.getTagValue(stepnode, "sampleRows");
 			}
 			catch(Exception e)
 			{
@@ -330,6 +352,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		{
 			filenameField = rep.getStepAttributeString(id_step, "filenamefield");
 			startRow = rep.getStepAttributeString(id_step, "startrow");
+			sampleRows = rep.getStepAttributeString(id_step, "sampleRows");
 		}
 		catch(KettleDatabaseException dbe)
 		{
@@ -347,11 +370,11 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		{
 			rep.saveStepAttribute(id_transformation, id_step, "filenamefield", filenameField);
 			rep.saveStepAttribute(id_transformation, id_step, "startrow", startRow);
+			rep.saveStepAttribute(id_transformation, id_step, "sampleRows", sampleRows);
 		}
 		catch(KettleDatabaseException dbe)
 		{
 			throw new KettleException("Unable to save step information to the repository, id_step="+id_step, dbe);
 		}
 	}
-
 }
