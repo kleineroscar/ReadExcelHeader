@@ -243,7 +243,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepSampleRows.right = new FormAttachment(100, 0);
 		wTextSampleRows.setLayoutData(wFormStepSampleRows);
 		
-		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextStartRow);
+		BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel}, margin, wTextSampleRows);
 
 
 		// Add listeners for cancel and OK

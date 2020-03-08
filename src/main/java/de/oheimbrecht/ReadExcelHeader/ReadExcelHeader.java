@@ -15,7 +15,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- */ 
+ */
 package de.oheimbrecht.ReadExcelHeader;
 
 import java.io.File;
@@ -25,6 +25,10 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.microsoft.schemas.office.visio.x2012.main.CellType;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.exception.KettleException;
@@ -45,6 +49,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 	private String realFilename;
 	private int fieldnr;
 	private int startRow;
+	private int sampleRows;
 	private ReadExcelHeaderMeta meta;
 	private ReadExcelHeaderData data;
 	
@@ -106,6 +111,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			try {
 				fieldnr = Integer.parseInt(meta.getFilenameField());
 				startRow = Integer.parseInt(meta.getStartRow());
+				sampleRows = Integer.parseInt(meta.getSampleRows());
 			} catch (Exception e) {
 				throw new KettleValueException("An error occurred while parsing the step settings.");
 			}
@@ -119,7 +125,6 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			realFilename = url.getPath();
 		} catch (MalformedURLException murl) {
 			realFilename = environmentFilename;
-			log.logDebug("used environment filename");
 		}
 
 		try {
@@ -144,34 +149,47 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			for (short j=row.getFirstCellNum();j<row.getLastCellNum();j++) {
 				// generate output row, make it correct size
 				Object[] outputRow = RowDataUtil.createResizedCopy(r, data.outputRowMeta.size());
+				
+				int lastMeta = data.outputRowMeta.size();
 				try {
-					int lastMeta = data.outputRowMeta.size();
 					log.logDebug("Processing the next cell with number: " + j);
-					XSSFCell cellBelow = sheet.getRow(startRow + 1).getCell(row.getCell(j).getColumnIndex());
-					log.logDebug("Created cellBelow");
 					outputRow[lastMeta - 5] = realFilename.toString();
 					log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in " + String.valueOf(lastMeta - 5));
 					outputRow[lastMeta - 4] = workbook1.getSheetName(i);
 					log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in " + String.valueOf(lastMeta - 4));
 					outputRow[lastMeta - 3] = row.getCell(j).toString();
 					log.logRowlevel("Got cell header: " + outputRow[lastMeta - 3] + " setting in " + String.valueOf(lastMeta - 3));
-					try {
-						outputRow[lastMeta - 2] = cellBelow.getCellTypeEnum();
-						log.logRowlevel("Got cell type from cellBelow: " + outputRow[lastMeta - 2] + " setting in " + String.valueOf(lastMeta - 2));
-						outputRow[lastMeta - 1] = cellBelow.getCellStyle().getDataFormatString();
-						log.logRowlevel("Got cell data format from cellBelow: " + outputRow[lastMeta - 1] + " setting in " + String.valueOf(lastMeta - 1));
-					} catch (Exception e) {
-						outputRow[lastMeta - 2] = "No data";
-						outputRow[lastMeta - 1] = "No data";
-					}
 				} catch (Exception e) {
 					log.logError("Some error while getting the values. With i=" + String.valueOf(i) + "and j=" + String.valueOf(j));
 					
 					log.logError(e.getMessage());
 					throw new KettleException(e.getMessage());
 				}
+
+				Map<String, String[]> cellInfo = new HashMap<>();
+				// Map<String, String> cellStyles = new HashMap<>();
+				for (int k=startRow + 1;k<sampleRows;k++) {
+					try {
+						XSSFCell cell = sheet.getRow(k).getCell(row.getCell(j).getColumnIndex());
+						log.logDebug("Adding type and style to list");
+						cellInfo.put(cell.getCellTypeEnum().toString()+cell.getCellStyle().getDataFormatString(), new String[] {cell.getCellTypeEnum().toString(), cell.getCellStyle().getDataFormatString()});
+					} catch (Exception e) {
+					}
+				}
+				if (cellInfo.size() == 0) {
+					outputRow[lastMeta - 2] = "NO DATA";
+					outputRow[lastMeta - 1] = "NO DATA";
+				} else if (cellInfo.size() > 1) {
+					outputRow[lastMeta - 2] = "STRING";
+					outputRow[lastMeta - 1] = "Mixed";
+				} else {
+					String[] info = (String[]) cellInfo.values().toArray()[0];
+					outputRow[lastMeta - 2] = info[0];
+					outputRow[lastMeta - 1] = info[1];
+				}
+
 				// put the row to the output row stream
-				log.logDebug("Created the following row: " + Arrays.toString(outputRow));
+				log.logDebug("Created the following row: " + Arrays.toString(outputRow) + " ;map size=" + cellInfo.size());
 				putRow(data.outputRowMeta, outputRow);
 			}
 			// log progress if it is time to to so
