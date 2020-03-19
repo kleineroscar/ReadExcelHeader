@@ -42,6 +42,7 @@ import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
@@ -56,7 +57,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private Label wLabelStepFilename, wLabelStepStartRow, wLabelStepSampleRows;
 	private CCombo wComboStepFilename;
 	private FormData wFormStepFilename, wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows;
-	private Text wTextStartRow, wTextSampleRows;
+	private TextVar wTextStartRow, wTextSampleRows;
 	RowMetaInterface inputSteps;
 
 	public ReadExcelHeaderDialog(Shell parent, Object in, TransMeta transMeta, String sname) {
@@ -180,7 +181,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormLabelStepStartRow.top = new FormAttachment(wComboStepFilename, margin);
 		wLabelStepStartRow.setLayoutData(wFormLabelStepStartRow);
 	
-		wTextStartRow = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wTextStartRow = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
 		props.setLook(wStepname);
 //		wTextStartRow.addVerifyListener(new VerifyListener() {
 //
@@ -233,7 +234,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormLabelStepSampleRows.top = new FormAttachment(wTextStartRow, margin);
 		wLabelStepSampleRows.setLayoutData(wFormLabelStepSampleRows);
 		
-		wTextSampleRows = new Text(shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
+		wTextSampleRows = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
 		props.setLook(wStepname);
 		props.setLook(wTextSampleRows);
 		wTextSampleRows.addModifyListener(lsMod);

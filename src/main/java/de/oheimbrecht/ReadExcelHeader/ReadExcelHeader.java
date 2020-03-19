@@ -27,9 +27,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.microsoft.schemas.office.visio.x2012.main.CellType;
-
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -110,8 +107,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			log.logDebug("outputRowMeta after adding: " + data.outputRowMeta);
 			try {
 				fieldnr = Integer.parseInt(meta.getFilenameField());
-				startRow = Integer.parseInt(meta.getStartRow());
-				sampleRows = Integer.parseInt(meta.getSampleRows());
+				startRow = Integer.parseInt(environmentSubstitute(meta.getStartRow()));
+				sampleRows = Integer.parseInt(environmentSubstitute(meta.getSampleRows()));
 			} catch (Exception e) {
 				throw new KettleValueException("An error occurred while parsing the step settings.");
 			}
@@ -144,7 +141,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 				log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/" + row.getLastCellNum());
 			} catch (Exception e) {
 				log.logError("Unable to read sheet or row.\n Maybe the row given is empty.\n" + e.getMessage());
-				throw new KettleValueException("Could not read sheet.");
+				throw new KettleValueException("Could not read sheet with number: " + i);
 			}
 			for (short j=row.getFirstCellNum();j<row.getLastCellNum();j++) {
 				// generate output row, make it correct size
@@ -160,18 +157,17 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 					outputRow[lastMeta - 3] = row.getCell(j).toString();
 					log.logRowlevel("Got cell header: " + outputRow[lastMeta - 3] + " setting in " + String.valueOf(lastMeta - 3));
 				} catch (Exception e) {
-					log.logError("Some error while getting the values. With i=" + String.valueOf(i) + "and j=" + String.valueOf(j));
+					log.logError("Some error while getting the values. With Sheetnumber:" + String.valueOf(i) + " and Column number:" + String.valueOf(j));
 					
 					log.logError(e.getMessage());
 					throw new KettleException(e.getMessage());
 				}
 
 				Map<String, String[]> cellInfo = new HashMap<>();
-				// Map<String, String> cellStyles = new HashMap<>();
 				for (int k=startRow + 1;k<sampleRows;k++) {
 					try {
 						XSSFCell cell = sheet.getRow(k).getCell(row.getCell(j).getColumnIndex());
-						log.logDebug("Adding type and style to list");
+						log.logDebug("Adding type and style to list: '" + cell.getCellTypeEnum().toString() + "/" + cell.getCellStyle().getDataFormatString() + "'");
 						cellInfo.put(cell.getCellTypeEnum().toString()+cell.getCellStyle().getDataFormatString(), new String[] {cell.getCellTypeEnum().toString(), cell.getCellStyle().getDataFormatString()});
 					} catch (Exception e) {
 					}
