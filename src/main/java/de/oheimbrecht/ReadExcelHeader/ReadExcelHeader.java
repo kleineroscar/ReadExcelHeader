@@ -113,7 +113,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 				throw new KettleValueException("An error occurred while parsing the step settings.");
 			}
 			if (fieldnr < 0) {
-				throw new KettleValueException("CouldNotFindField :" + getInputRowMeta().getFieldNames()[Integer.parseInt(meta.getFilenameField())].toString());
+				throw new KettleValueException("CouldNotFindField with input :" + meta.getFilenameField());
 			}
 		}
 		environmentFilename = getInputRowMeta().getString(r, fieldnr);
