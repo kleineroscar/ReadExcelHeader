@@ -128,7 +128,8 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 			file1InputStream = new FileInputStream(new File(realFilename));
 			workbook1 = new XSSFWorkbook(file1InputStream);
 		} catch (IOException e) {
-			throw new KettleValueException("Could not parse the workbook");
+			log.logError("Could not parse the workbook. Read error.");
+			log.logDebug(e.getMessage());
 		}
 		
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
