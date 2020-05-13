@@ -112,7 +112,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 	private ReadExcelHeaderMeta meta;
 	private Label wLabelStepStartRow, wLabelStepSampleRows;
-	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows;
+	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows, fdStartRow, fdSampleRows;
 	private TextVar wTextStartRow, wTextSampleRows;
 	RowMetaInterface inputSteps;
 
@@ -259,7 +259,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		SelectionAdapter lfilefield = new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent arg0) {
 				ActiveFileField();
-				meta.setChanged();
+				meta.setChanged(true);
 			}
 		};
 		wFileField.addSelectionListener(lfilefield);
@@ -505,6 +505,12 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepStartRow.right = new FormAttachment(100, -margin);
 		wTextStartRow.setLayoutData(wFormStepStartRow);
 
+		fdStartRow = new FormData();
+    	fdStartRow.left = new FormAttachment( 0, margin );
+    	fdStartRow.top = new FormAttachment( 0, margin );
+    	fdStartRow.right = new FormAttachment( 100, -margin );
+    	wStartRowGroup.setLayoutData( fdStartRow );
+
 		// ///////////////////////////////////////////////////////////
 		// / END OF START ROW GROUP
 		// ///////////////////////////////////////////////////////////
@@ -539,6 +545,11 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepSampleRows.top = new FormAttachment(wStartRowGroup, margin);
 		wFormStepSampleRows.right = new FormAttachment(100, -margin);
 		wTextSampleRows.setLayoutData(wFormStepSampleRows);
+		fdSampleRows = new FormData();
+    	fdSampleRows.left = new FormAttachment( 0, margin );
+    	fdSampleRows.top = new FormAttachment( wStartRowGroup, margin );
+    	fdSampleRows.right = new FormAttachment( 100, -margin );
+    	wSampleRowsGroup.setLayoutData( fdSampleRows );
 
 		// /////////////////////////////////
 		// END OF SAMPLE ROWS GROUP
@@ -793,6 +804,9 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		meta.setIncludeSubFolders(wFilenameList.getItems(4));
 		meta.setStartRow(wTextStartRow.getText());
 		meta.setSampleRows(wTextSampleRows.getText());
+
+		meta.setFileField( wFileField.getSelection() );
+    	meta.setFileNameField( wFilenameField.getText() );
 	}
 
 	private void cancel() {

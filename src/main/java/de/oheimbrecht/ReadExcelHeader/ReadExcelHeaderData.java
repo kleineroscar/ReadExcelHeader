@@ -18,13 +18,28 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
+import org.apache.commons.vfs2.FileObject;
+import org.pentaho.di.core.fileinput.FileInputList;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 
 public class ReadExcelHeaderData extends BaseStepData {
 	public RowMetaInterface outputRowMeta;
+	public Object[] readrow;
+	public boolean last_file;
+	public long filenr;
+	public FileInputList files;
+	public FileObject file;
+	public RowMetaInterface inputRowMeta;
+	public int totalpreviousfields;
+	public long rownr;
+	public int indexOfFilenameField;
 
 	public ReadExcelHeaderData() {
 			super();
+
+			readrow = null;
+			totalpreviousfields = 0;
+			indexOfFilenameField = -1;
 		}
 }

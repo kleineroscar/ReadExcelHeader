@@ -22,17 +22,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
+import com.google.common.escape.Escaper;
+
 import org.apache.poi.xssf.usermodel.*;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
-import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.RowMeta;
+import org.pentaho.di.core.util.Utils;
+import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStep;
@@ -49,9 +53,6 @@ public class ReadExcelHeader extends BaseStep {
 
 	InputStream file1InputStream = null;
 	XSSFWorkbook workbook1 = null;
-
-	/** List of filenames */
-	private List<String> files;
 
 	private String fileField;
 	private String filePath;
@@ -71,9 +72,68 @@ public class ReadExcelHeader extends BaseStep {
 
 		if (super.init(smi, sdi)) {
 			first = true;
+
+			// Set Embedded NamedCluter MetatStore Provider Key so that it can be passed to
+			// VFS
+			if (getTransMeta().getNamedClusterEmbedManager() != null) {
+				getTransMeta().getNamedClusterEmbedManager().passEmbeddedMetastoreKey(this,
+						getTransMeta().getEmbeddedMetastoreProviderKey());
+			}
+
+			if (!meta.isFileField()) {
+				data.files = meta.getFiles(this);
+				if (data.files == null || data.files.nrOfFiles() == 0) {
+					logError(Messages.getString("ReadExcelHeaderDialog.Log.NoFiles"));
+					return false;
+				}
+				try {
+					// Create the output row meta-data
+					data.outputRowMeta = new RowMeta();
+					meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore); // get
+																												// the
+																												// metadata
+																												// populated
+
+				} catch (Exception e) {
+					logError("Error initializing step: " + e.toString());
+					logError(Const.getStackTracker(e));
+					return false;
+				}
+			}
+			data.rownr = 0;
+			data.filenr = 0;
+			data.totalpreviousfields = 0;
+
 			return true;
 		}
 		return false;
+	}
+
+	private Object[] getOneRow() throws KettleException {
+		if (!openNextFile()) {
+			return null;
+		}
+
+		// Build an empty row based on the meta-data
+		Object[] r;
+		try {
+			// Create new row or clone
+			if (meta.isFileField()) {
+				r = data.readrow.clone();
+				r = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
+			} else {
+				r = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+			}
+
+			r[data.totalpreviousfields] = data.rownr;
+
+			incrementLinesInput();
+
+		} catch (Exception e) {
+			throw new KettleException("Unable to read row from file", e);
+		}
+
+		return r;
 	}
 
 	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
@@ -85,66 +145,150 @@ public class ReadExcelHeader extends BaseStep {
 
 		// get incoming row, getRow() potentially blocks waiting for more rows, returns
 		// null if no more rows expected
-		Object[] r = getRow();
+		Object[] r;// = getRow();
 
-		// if no more rows are expected, indicate step is finished and processRow()
-		// should not be called again
-		if (r == null) {
-			setOutputDone();
+		try {
+			Object[] outputRowData = getOneRow();
+			if (outputRowData == null) {
+				setOutputDone(); // signal end to receiver(s)
+				return false; // end of data or error.
+			}
+			r = outputRowData;
+
+			// if ((!meta.isFileField() && data.last_file) || meta.isFileField()) {
+			// putRow(data.outputRowMeta, outputRowData); // copy row to output rowset(s);
+			// if (log.isDetailed()) {
+			// logDetailed(BaseMessages.getString(PKG,
+			// "GetFilesRowsCount.Log.TotalRowsFiles"), data.rownr,
+			// data.filenr);
+			// }
+			// }
+			
+			if (fileField == null) {
+				fileField = "";
+			}
+			if (meta.isFileField()) {
+				filePath = getInputRowMeta().getString(r, data.file.toString(), fileField);
+			} else {
+				filePath = data.file.toString();
+			}
+			
+			getHeader(r);
+			// indicate that processRow() should be called again
+			return true;
+
+		} catch (KettleException e) {
+
+			logError(Messages.getString("ReadExcelHeaderDialog.ErrorInStepRunning", e.getMessage()));
+			setErrors(1);
+			stopAll();
+			setOutputDone(); // signal end to receiver(s)
 			return false;
 		}
+		// return true;
 
-		// the "first" flag is inherited from the base step implementation
-		// it is used to guard some processing tasks, like figuring out field indexes
-		// in the row structure that only need to be done once
-		if (first) {
-			first = false;
-			data.outputRowMeta = (RowMetaInterface) getInputRowMeta().clone();
-			log.logDebug("outputRowMeta before adding: " + data.outputRowMeta);
+	}
 
-			// use meta.getFields() to change it, so it reflects the output row structure
-			meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore);
-			log.logDebug("outputRowMeta after adding: " + data.outputRowMeta);
-			try {
-				files = new ArrayList<String>();
-				if (meta.isFileField()) {
-					fileField = meta.getFileNameField();
-				} else {
-					files = Arrays.asList(meta.getFileName());
-				}
-
-				startRow = Integer.parseInt(environmentSubstitute(meta.getStartRow()));
-				sampleRows = Integer.parseInt(environmentSubstitute(meta.getSampleRows()));
-			} catch (Exception e) {
-				throw new KettleValueException("An error occurred while parsing the step settings.");
-			}
+	private boolean openNextFile() {
+		if (data.last_file) {
+			return false; // Done!
 		}
 
 		try {
-		if (meta.isFileField()) {
-			filePath = getInputRowMeta().getString(r, fileField, "filename");
-			getHeader(r);
-			return true;
-		} else {
-			for (String file : files) {
-				filePath = file;
-				getHeader(r);
+			if (!meta.isFileField()) {
+				if (data.filenr >= data.files.nrOfFiles()) {
+					// finished processing!
+
+					if (log.isDetailed()) {
+						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+					}
+					return false;
+				}
+
+				// Is this the last file?
+				data.last_file = (data.filenr == data.files.nrOfFiles() - 1);
+				data.file = data.files.getFile((int) data.filenr);
+
+			} else {
+				data.readrow = getRow(); // Get row from input rowset & set row busy!
+				if (data.readrow == null) {
+					if (log.isDetailed()) {
+						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+					}
+					return false;
+				}
+
+				if (first) {
+					first = false;
+
+					data.inputRowMeta = getInputRowMeta();
+					data.outputRowMeta = data.inputRowMeta.clone();
+					meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore);
+
+					// Get total previous fields
+					data.totalpreviousfields = data.inputRowMeta.size();
+
+					// Check is filename field is provided
+					if (Utils.isEmpty(meta.getFileNameField())) {
+						logError(Messages.getString("ReadExcelHeaderDialog.Log.NoField"));
+						throw new KettleException(Messages.getString("ReadExcelHeaderDialog.Log.NoField"));
+					}
+
+					// cache the position of the field
+					if (data.indexOfFilenameField < 0) {
+						data.indexOfFilenameField = getInputRowMeta().indexOfValue(meta.getFileNameField());
+						if (data.indexOfFilenameField < 0) {
+							// The field is unreachable !
+							logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField",
+									meta.getFileNameField()));
+							throw new KettleException(Messages.getString(
+									"ReadExcelHeaderDialog.Exception.CouldnotFindField", meta.getFileNameField()));
+						}
+					}
+
+				} // End if first
+
+				String filename = getInputRowMeta().getString(data.readrow, data.indexOfFilenameField);
+				if (log.isDetailed()) {
+					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+							meta.getFileNameField(), filename));
+				}
+
+				data.file = KettleVFS.getFileObject(filename, getTransMeta());
+
+				// Init Row number
+				if (meta.isFileField()) {
+					data.rownr = 0;
+				}
 			}
+
+			// Move file pointer ahead!
+			data.filenr++;
+
+			if (log.isDetailed()) {
+				logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.OpeningFile", data.file.toString()));
+			}
+
+			// if ( log.isDetailed() ) {
+			// logDetailed( Messages.getString( "ReadExcelHeaderDialog.Log.FileOpened",
+			// data.file.toString() ) );
+			// }
+
+		} catch (Exception e) {
+			logError(Messages.getString("ReadExcelHeaderDialog.Log.UnableToOpenFile", "" + data.filenr,
+					data.file.toString(), e.toString()));
+			stopAll();
+			setErrors(1);
 			return false;
 		}
-	} catch (KettleStepException kse) {
-		throw new KettleException(kse);
-	}
-
-		// indicate that processRow() should be called again
-
+		return true;
 	}
 
 	private void getHeader(Object[] r) throws KettleStepException {
 		log.logDebug("Filpath is: " + filePath);
 
 		try {
-			file1InputStream = new FileInputStream(new File(filePath));
+			file1InputStream = new URL(filePath).openStream();
 		} catch (IOException e) {
 			log.logDebug("Supplied file: " + filePath);
 			log.logDebug(e.getMessage());
