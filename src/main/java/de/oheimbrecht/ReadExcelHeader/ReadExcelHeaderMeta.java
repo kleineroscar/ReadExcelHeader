@@ -24,6 +24,7 @@ import java.util.Map;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Counter;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
@@ -31,6 +32,7 @@ import org.pentaho.di.core.exception.KettleDatabaseException;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.fileinput.FileInputList;
 import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -51,14 +53,9 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
 
-@Step( id = "ReadExcelHeader", image = "REH.svg",
-i18nPackageName = "de.oheimbrecht.ReadExcelHeader", name = "ReadExcelHeader.Step.Name",
-description = "ReadExcelHeader.Step.Description",
-categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Utility",
-documentationUrl = "https://github.com/kleineroscar/ReadExcelHeader" )
+@Step(id = "ReadExcelHeader", image = "REH.svg", i18nPackageName = "de.oheimbrecht.ReadExcelHeader", name = "ReadExcelHeader.Step.Name", description = "ReadExcelHeader.Step.Description", categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Utility", documentationUrl = "https://github.com/kleineroscar/ReadExcelHeader")
 
-
-@InjectionSupported( localizationPrefix = "ReadExcelHeader.Injection.")
+@InjectionSupported(localizationPrefix = "ReadExcelHeader.Injection.")
 public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterface {
 	/** Field to read from */
 	@Injection(name = "FIELD_OF_FILENAMES")
@@ -67,11 +64,40 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	private String startRow;
 	@Injection(name = "NUMBER_OF_ROWS_TO_SAMPLE")
 	private String sampleRows;
-	
+
+	private boolean filefield;
+
+	public static final String[] RequiredFilesDesc = new String[] { Messages.getString("System.Combo.No"),
+			Messages.getString("System.Combo.Yes") };
+	public static final String[] RequiredFilesCode = new String[] { "N", "Y" };
+	private static final String NO = "N";
+	private static final String YES = "Y";
+
+	/** Array of filenames */
+	private String[] fileName;
+
+	/** Wildcard or filemask (regular expression) */
+	private String[] fileMask;
+
+	/** Wildcard or filemask to exclude (regular expression) */
+	private String[] excludeFileMask;
+
+	/** Flag indicating that a row number field should be included in the output */
+	private boolean includeFilesCount;
+
+	/** Array of boolean values as string, indicating if a file is required. */
+	private String[] fileRequired;
+
+	/**
+	 * Array of boolean values as string, indicating if we need to fetch sub
+	 * folders.
+	 */
+	private String[] includeSubFolders;
+
 	public ReadExcelHeaderMeta() {
 		super();
 	}
-	
+
 	/**
 	 * Called by Spoon to get a new instance of the SWT dialog for the step. A
 	 * standard implementation passing the arguments to the constructor of the step
@@ -84,7 +110,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 * @return new instance of a dialog for this step
 	 */
 	public StepDialogInterface getDialog(Shell shell, StepMetaInterface meta, TransMeta transMeta, String name) {
-		return new ReadExcelHeaderDialog( shell, meta, transMeta, name );
+		return new ReadExcelHeaderDialog(shell, meta, transMeta, name);
 	}
 
 	/**
@@ -120,14 +146,27 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		filenameField = "";
 		startRow = "0";
 		sampleRows = "1";
+		filefield = false;
+
+		int nrFiles = 0;
+
+		allocate(nrFiles);
+
+		for (int i = 0; i < nrFiles; i++) {
+			fileName[i] = "filename" + (i + 1);
+			fileMask[i] = "";
+			excludeFileMask[i] = "";
+			fileRequired[i] = RequiredFilesCode[0];
+			includeSubFolders[i] = RequiredFilesCode[0];
+		}
 	}
 
-//	@Override
-//	public boolean excludeFromCopyDistributeVerification()
-//	{
-//		return true;
-//	}
-	
+	// @Override
+	// public boolean excludeFromCopyDistributeVerification()
+	// {
+	// return true;
+	// }
+
 	/**
 	 * This method is used when a step is duplicated in Spoon. It needs to return a
 	 * deep copy of this step meta object. Be sure to create proper deep copies if
@@ -143,10 +182,19 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.filenameField = filenameField;
 		retval.startRow = startRow;
 		retval.sampleRows = sampleRows;
-		
+
+		int nrFiles = fileName.length;
+
+		retval.allocate(nrFiles);
+		System.arraycopy(fileName, 0, retval.fileName, 0, nrFiles);
+		System.arraycopy(fileMask, 0, retval.fileMask, 0, nrFiles);
+		System.arraycopy(excludeFileMask, 0, retval.excludeFileMask, 0, nrFiles);
+		System.arraycopy(fileRequired, 0, retval.fileRequired, 0, nrFiles);
+		System.arraycopy(includeSubFolders, 0, retval.includeSubFolders, 0, nrFiles);
+
 		return retval;
 	}
-	
+
 	// For compatibility with 7.x
 	@Override
 	public String getDialogClassName() {
@@ -170,7 +218,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
 			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
-		
+
 		/*
 		 * This implementation appends the outputField to the row-stream
 		 */
@@ -179,7 +227,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 		// the name of the step that adds this field
 		vWorkbook.setOrigin(name);
-		
+
 		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
@@ -190,7 +238,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 		// the name of the step that adds this field
 		vSheet.setOrigin(name);
-		
+
 		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
@@ -201,7 +249,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 		// the name of the step that adds this field
 		vColumnName.setOrigin(name);
-		
+
 		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
@@ -212,22 +260,36 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 		// the name of the step that adds this field
 		vColumnType.setOrigin(name);
-		
+
 		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnType);
-		
+
 		// a value meta object contains the meta data for a field
 		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat", 500, -1);
-		
+
 		// the name of the step that adds this field
 		vColumnDataFormat.setOrigin(name);
-		
+
 		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnDataFormat);
+	}
+
+	public FileInputList getFiles(VariableSpace space) {
+		return FileInputList.createFileList(space, fileName, fileMask, excludeFileMask, fileRequired,
+				includeSubFolderBoolean());
+	}
+
+	private boolean[] includeSubFolderBoolean() {
+		int len = fileName.length;
+		boolean[] includeSubFolderBoolean = new boolean[len];
+		for (int i = 0; i < len; i++) {
+			includeSubFolderBoolean[i] = YES.equalsIgnoreCase(includeSubFolders[i]);
+		}
+		return includeSubFolderBoolean;
 	}
 
 	/**
@@ -273,7 +335,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No input received from other steps!", stepMeta);
 			remarks.add(cr);
 		}
-		
+
 		if (!filenameField.isEmpty()) {
 			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a filename.", stepMeta);
 			remarks.add(cr);
@@ -306,7 +368,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public void setFilenameField(final String filenameField) {
 		this.filenameField = filenameField;
 	}
-	
+
 	public String getStartRow() {
 		return startRow;
 	}
@@ -328,53 +390,227 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.append("   " + XMLHandler.addTagValue("filenamefield", filenameField));
 		retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
 		retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
+		retval.append("    ").append(XMLHandler.addTagValue("filefield", filefield));
+
+		retval.append("    <file>").append(Const.CR);
+		for (int i = 0; i < fileName.length; i++) {
+			retval.append("      ").append(XMLHandler.addTagValue("name", fileName[i]));
+			retval.append("      ").append(XMLHandler.addTagValue("filemask", fileMask[i]));
+			retval.append("      ").append(XMLHandler.addTagValue("exclude_filemask", excludeFileMask[i]));
+			retval.append("      ").append(XMLHandler.addTagValue("file_required", fileRequired[i]));
+			retval.append("      ").append(XMLHandler.addTagValue("include_subfolders", includeSubFolders[i]));
+			parentStepMeta.getParentTransMeta().getNamedClusterEmbedManager().registerUrl(fileName[i]);
+		}
+		retval.append("    </file>").append(Const.CR);
+
 		return retval.toString();
 	}
-	
-	public void loadXML(Node stepnode, List<DatabaseMeta> databases, Map<String,Counter> counters)
-			throws KettleXMLException
-		{
-			try
-			{
-				filenameField = XMLHandler.getTagValue(stepnode, "filenamefield");
-				startRow = XMLHandler.getTagValue(stepnode, "startrow");
-				sampleRows = XMLHandler.getTagValue(stepnode, "sampleRows");
+
+	public void loadXML(Node stepnode, List<DatabaseMeta> databases, Map<String, Counter> counters)
+			throws KettleXMLException {
+		try {
+			filenameField = XMLHandler.getTagValue(stepnode, "filenamefield");
+			startRow = XMLHandler.getTagValue(stepnode, "startrow");
+			sampleRows = XMLHandler.getTagValue(stepnode, "sampleRows");
+
+			filefield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "filefield"));
+
+			Node filenode = XMLHandler.getSubNode(stepnode, "file");
+			int nrFiles = XMLHandler.countNodes(filenode, "name");
+			allocate(nrFiles);
+
+			for (int i = 0; i < nrFiles; i++) {
+				Node filenamenode = XMLHandler.getSubNodeByNr(filenode, "name", i);
+				Node filemasknode = XMLHandler.getSubNodeByNr(filenode, "filemask", i);
+				Node excludefilemasknode = XMLHandler.getSubNodeByNr(filenode, "exclude_filemask", i);
+				Node fileRequirednode = XMLHandler.getSubNodeByNr(filenode, "file_required", i);
+				Node includeSubFoldersnode = XMLHandler.getSubNodeByNr(filenode, "include_subfolders", i);
+				fileName[i] = XMLHandler.getNodeValue(filenamenode);
+				fileMask[i] = XMLHandler.getNodeValue(filemasknode);
+				excludeFileMask[i] = XMLHandler.getNodeValue(excludefilemasknode);
+				fileRequired[i] = XMLHandler.getNodeValue(fileRequirednode);
+				includeSubFolders[i] = XMLHandler.getNodeValue(includeSubFoldersnode);
 			}
-			catch(Exception e)
-			{
-				throw new KettleXMLException("Unable to read step info from XML node", e);
-			}
+		} catch (Exception e) {
+			throw new KettleXMLException("Unable to read step info from XML node", e);
 		}
-	
-	public void readRep(Repository rep, ObjectId id_step, List<DatabaseMeta> databases, Map<String,Counter> counters) throws KettleException
-	{
-		try
-		{
+	}
+
+	public void readRep(Repository rep, ObjectId id_step, List<DatabaseMeta> databases, Map<String, Counter> counters)
+			throws KettleException {
+		try {
 			filenameField = rep.getStepAttributeString(id_step, "filenamefield");
 			startRow = rep.getStepAttributeString(id_step, "startrow");
 			sampleRows = rep.getStepAttributeString(id_step, "sampleRows");
-		}
-		catch(KettleDatabaseException dbe)
-		{
-			throw new KettleException("error reading step with id_step="+id_step+" from the repository", dbe);
-		}
-		catch(Exception e)
-		{
-			throw new KettleException("Unexpected error reading step with id_step="+id_step+" from the repository", e);
+
+			filefield = rep.getStepAttributeBoolean(id_step, "filefield");
+
+			int nrFiles = rep.countNrStepAttributes(id_step, "file_name");
+
+			allocate(nrFiles);
+
+			for (int i = 0; i < nrFiles; i++) {
+				fileName[i] = rep.getStepAttributeString(id_step, i, "file_name");
+				fileMask[i] = rep.getStepAttributeString(id_step, i, "file_mask");
+				excludeFileMask[i] = rep.getStepAttributeString(id_step, i, "exclude_file_mask");
+				fileRequired[i] = rep.getStepAttributeString(id_step, i, "file_required");
+				if (!YES.equalsIgnoreCase(fileRequired[i])) {
+					fileRequired[i] = NO;
+				}
+				includeSubFolders[i] = rep.getStepAttributeString(id_step, i, "include_subfolders");
+				if (!YES.equalsIgnoreCase(includeSubFolders[i])) {
+					includeSubFolders[i] = NO;
+				}
+			}
+		} catch (KettleDatabaseException dbe) {
+			throw new KettleException("error reading step with id_step=" + id_step + " from the repository", dbe);
+		} catch (Exception e) {
+			throw new KettleException("Unexpected error reading step with id_step=" + id_step + " from the repository",
+					e);
 		}
 	}
-	
-	public void saveRep(Repository rep, ObjectId id_transformation, ObjectId id_step) throws KettleException
-	{
-		try
-		{
+
+	public void saveRep(Repository rep, ObjectId id_transformation, ObjectId id_step) throws KettleException {
+		try {
 			rep.saveStepAttribute(id_transformation, id_step, "filenamefield", filenameField);
 			rep.saveStepAttribute(id_transformation, id_step, "startrow", startRow);
 			rep.saveStepAttribute(id_transformation, id_step, "sampleRows", sampleRows);
+		} catch (KettleDatabaseException dbe) {
+			throw new KettleException("Unable to save step information to the repository, id_step=" + id_step, dbe);
 		}
-		catch(KettleDatabaseException dbe)
-		{
-			throw new KettleException("Unable to save step information to the repository, id_step="+id_step, dbe);
+	}
+
+	public void allocate(int nrfiles) {
+		fileName = new String[nrfiles];
+		fileMask = new String[nrfiles];
+		excludeFileMask = new String[nrfiles];
+		fileRequired = new String[nrfiles];
+		includeSubFolders = new String[nrfiles];
+	}
+
+	/**
+	 * @return Returns the excludeFileMask.
+	 */
+	public String[] getExcludeFileMask() {
+		return excludeFileMask;
+	}
+
+	/**
+	 * @param excludeFileMask The excludeFileMask to set.
+	 */
+	public void setExcludeFileMask(String[] excludeFileMask) {
+		this.excludeFileMask = excludeFileMask;
+	}
+
+	/**
+	 * @return Returns the output filename_Field.
+	 */
+	public String getFileNameField() {
+		return filenameField;
+	}
+
+	/**
+	 * @param filenameField The output filename_field to set.
+	 */
+	public void setFileNameField(String filenameField) {
+		this.filenameField = filenameField;
+	}
+
+	/**
+	 * @return Returns the fileMask.
+	 */
+	public String[] getFileMask() {
+		return fileMask;
+	}
+
+	public void setFileRequired(String[] fileRequiredin) {
+		for (int i = 0; i < fileRequiredin.length; i++) {
+			this.fileRequired[i] = getRequiredFilesCode(fileRequiredin[i]);
 		}
+	}
+
+	public String[] getIncludeSubFolders() {
+		return includeSubFolders;
+	}
+
+	public void setIncludeSubFolders(String[] includeSubFoldersin) {
+		for (int i = 0; i < includeSubFoldersin.length; i++) {
+			this.includeSubFolders[i] = getRequiredFilesCode(includeSubFoldersin[i]);
+		}
+	}
+
+	public String getRequiredFilesCode(String tt) {
+		if (tt == null) {
+			return RequiredFilesCode[0];
+		}
+		if (tt.equals(RequiredFilesDesc[1])) {
+			return RequiredFilesCode[1];
+		} else {
+			return RequiredFilesCode[0];
+		}
+	}
+
+	public String getRequiredFilesDesc(String tt) {
+		if (tt == null) {
+			return RequiredFilesDesc[0];
+		}
+		if (tt.equals(RequiredFilesCode[1])) {
+			return RequiredFilesDesc[1];
+		} else {
+			return RequiredFilesDesc[0];
+		}
+	}
+
+	/**
+	 * @param fileMask The fileMask to set.
+	 */
+	public void setFileMask(String[] fileMask) {
+		this.fileMask = fileMask;
+	}
+
+	/**
+	 * @return Returns the fileName.
+	 */
+	public String[] getFileName() {
+		return fileName;
+	}
+
+	/**
+	 * @param fileName The fileName to set.
+	 */
+	public void setFileName(String[] fileName) {
+		this.fileName = fileName;
+	}
+
+	/**
+	 * @return Returns the includeCountFiles.
+	 */
+	public boolean includeCountFiles() {
+		return includeFilesCount;
+	}
+
+	/**
+	 * @param includeFilesCount The "includes files count" flag to set.
+	 */
+	public void setIncludeCountFiles(boolean includeFilesCount) {
+		this.includeFilesCount = includeFilesCount;
+	}
+
+	public String[] getFileRequired() {
+		return this.fileRequired;
+	}
+
+	/**
+	 * @return Returns the File field.
+	 */
+	public boolean isFileField() {
+		return filefield;
+	}
+
+	/**
+	 * @param filefield The file field to set.
+	 */
+	public void setFileField(boolean filefield) {
+		this.filefield = filefield;
 	}
 }
