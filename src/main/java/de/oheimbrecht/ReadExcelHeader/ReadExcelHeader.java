@@ -126,10 +126,17 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 
 		try {
 			file1InputStream = new FileInputStream(new File(realFilename));
+		} catch (IOException e) {
+			log.logDebug("Supplied file: " + realFilename);
+			log.logDebug(e.getMessage());
+			throw new KettleValueException("Could not read the file provided.");
+		}
+
+		try {
 			workbook1 = new XSSFWorkbook(file1InputStream);
 		} catch (IOException e) {
-			log.logError("Could not parse the workbook. Read error.");
 			log.logDebug(e.getMessage());
+			throw new KettleValueException("Could not parse the workbook from the file");
 		}
 		
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
@@ -171,6 +178,7 @@ public class ReadExcelHeader extends BaseStep implements StepInterface {
 						log.logDebug("Adding type and style to list: '" + cell.getCellTypeEnum().toString() + "/" + cell.getCellStyle().getDataFormatString() + "'");
 						cellInfo.put(cell.getCellTypeEnum().toString()+cell.getCellStyle().getDataFormatString(), new String[] {cell.getCellTypeEnum().toString(), cell.getCellStyle().getDataFormatString()});
 					} catch (Exception e) {
+						log.logDebug("Couldn't get Field info in row " + String.valueOf(k));
 					}
 				}
 				if (cellInfo.size() == 0) {
