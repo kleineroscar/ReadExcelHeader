@@ -172,6 +172,8 @@ public class ReadExcelHeader extends BaseStep {
 			if (fileField == null) {
 				fileField = "";
 			}
+			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
+			logDebug("data.file is: " + data.file.toString());
 			if (meta.isFileField()) {
 				filePath = getInputRowMeta().getString(r, data.file.toString(), fileField);
 			} else {
