@@ -344,7 +344,6 @@ public class ReadExcelHeader extends BaseStep {
 					throw new KettleStepException(e.getMessage());
 				}
 
-				// TODO Check if for loop is even executed
 				Map<String, String[]> cellInfo = new HashMap<>();
 				log.logDebug("Startrow is: " + startRow);
 				log.logDebug("Samplerows is: " + sampleRows);
