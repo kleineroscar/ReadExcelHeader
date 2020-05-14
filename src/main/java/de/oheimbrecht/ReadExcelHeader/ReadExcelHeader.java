@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,7 +51,6 @@ public class ReadExcelHeader extends BaseStep {
 	InputStream file1InputStream = null;
 	XSSFWorkbook workbook1 = null;
 
-	private String fileField;
 	private String filePath;
 
 	public ReadExcelHeader(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
@@ -170,16 +168,9 @@ public class ReadExcelHeader extends BaseStep {
 			// }
 			// }
 			
-			if (fileField == null) {
-				fileField = "";
-			}
 			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
 			logDebug("data.file is: " + data.file.toString());
-			if (meta.isFileField()) {
-				filePath = getInputRowMeta().getString(r, data.file.toString(), fileField);
-			} else {
-				filePath = data.file.toString();
-			}
+			filePath = data.file.toString();
 			
 			getHeader(r);
 			// indicate that processRow() should be called again
