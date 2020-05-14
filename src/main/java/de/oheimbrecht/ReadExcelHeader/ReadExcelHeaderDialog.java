@@ -115,6 +115,16 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows, fdStartRow, fdSampleRows;
 	private TextVar wTextStartRow, wTextSampleRows;
 	RowMetaInterface inputSteps;
+	private Label wlStartRowField;
+	private FormData fdlStartRowField;
+	private Button wStartRowField;
+	private FormData fdStartRowField;
+	private Label wlStartRowSelField;
+	private FormData fdlStartRowSelField;
+	private CCombo wStartRowSelField;
+	private FormData fdStartRowSelField;
+	private Label wSeparator;
+	private FormData fdSeparator;
 
 	public ReadExcelHeaderDialog(Shell parent, Object in, TransMeta transMeta, String sname) {
 		super(parent, (BaseStepMeta) in, transMeta, sname);
@@ -485,6 +495,73 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		startrowgroupLayout.marginHeight = 10;
 		wStartRowGroup.setLayout(startrowgroupLayout);
 
+		///////
+
+		wlStartRowField = new Label(wStartRowGroup, SWT.RIGHT);
+		wlStartRowField.setText(Messages.getString("ReadExcelHeaderDialog.StartRowField.Label"));
+		props.setLook(wlStartRowField);
+		fdlStartRowField = new FormData();
+		fdlStartRowField.left = new FormAttachment(0, -margin);
+		fdlStartRowField.top = new FormAttachment(0, margin);
+		fdlStartRowField.right = new FormAttachment(middle, -2 * margin);
+		wlStartRowField.setLayoutData(fdlStartRowField);
+
+		wStartRowField = new Button(wStartRowGroup, SWT.CHECK);
+		props.setLook(wStartRowField);
+		wStartRowField.setToolTipText(Messages.getString("ReadExcelHeaderDialog.StartRowField.Tooltip"));
+		fdStartRowField = new FormData();
+		fdStartRowField.left = new FormAttachment(middle, -margin);
+		fdStartRowField.top = new FormAttachment(0, margin);
+		wStartRowField.setLayoutData(fdStartRowField);
+		SelectionAdapter lStartRowfield = new SelectionAdapter() {
+			public void widgetSelected(SelectionEvent arg0) {
+				ActiveStartRowField();
+				meta.setChanged(true);
+			}
+		};
+		wStartRowField.addSelectionListener(lStartRowfield);
+
+		// StartRow field
+		wlStartRowSelField = new Label(wStartRowGroup, SWT.RIGHT);
+		wlStartRowSelField.setText(Messages.getString("ReadExcelHeaderDialog.StartRowSelField.Label"));
+		props.setLook(wlStartRowSelField);
+		fdlStartRowSelField = new FormData();
+		fdlStartRowSelField.left = new FormAttachment(0, -margin);
+		fdlStartRowSelField.top = new FormAttachment(wStartRowField, margin);
+		fdlStartRowSelField.right = new FormAttachment(middle, -2 * margin);
+		wlStartRowSelField.setLayoutData(fdlStartRowSelField);
+
+		wStartRowSelField = new CCombo(wStartRowGroup, SWT.BORDER | SWT.READ_ONLY);
+		wStartRowSelField.setEditable(true);
+		props.setLook(wStartRowSelField);
+		wStartRowSelField.addModifyListener(lsMod);
+		fdStartRowSelField = new FormData();
+		fdStartRowSelField.left = new FormAttachment(middle, -margin);
+		fdStartRowSelField.top = new FormAttachment(wStartRowField, margin);
+		fdStartRowSelField.right = new FormAttachment(100, -margin);
+		wStartRowSelField.setLayoutData(fdStartRowSelField);
+		wStartRowSelField.addFocusListener(new FocusListener() {
+			public void focusLost(org.eclipse.swt.events.FocusEvent e) {
+			}
+
+			public void focusGained(org.eclipse.swt.events.FocusEvent e) {
+				Cursor busy = new Cursor(shell.getDisplay(), SWT.CURSOR_WAIT);
+				shell.setCursor(busy);
+				setStartRowField();
+				shell.setCursor(null);
+				busy.dispose();
+			}
+		});
+
+		//////////
+
+		wSeparator = new Label( wStartRowGroup, SWT.SEPARATOR | SWT.HORIZONTAL );
+    	fdSeparator = new FormData();
+    	fdSeparator.left = new FormAttachment( 0, 0 );
+    	fdSeparator.right = new FormAttachment( 100, 0 );
+    	fdSeparator.top = new FormAttachment( wStartRowSelField, margin);
+    	wSeparator.setLayoutData( fdSeparator );
+
 		// start row line
 		wLabelStepStartRow = new Label(wStartRowGroup, SWT.RIGHT);
 		wLabelStepStartRow.setText(Messages.getString("ReadExcelHeaderDialog.StartRow.Label"));
@@ -492,7 +569,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormLabelStepStartRow = new FormData();
 		wFormLabelStepStartRow.left = new FormAttachment(0, 0);
 		wFormLabelStepStartRow.right = new FormAttachment(middle, -margin);
-		wFormLabelStepStartRow.top = new FormAttachment(0, margin);
+		wFormLabelStepStartRow.top = new FormAttachment(wSeparator, margin);
 		wLabelStepStartRow.setLayoutData(wFormLabelStepStartRow);
 
 		wTextStartRow = new TextVar(transMeta, wStartRowGroup, SWT.SINGLE | SWT.LEFT | SWT.BORDER);
@@ -501,13 +578,13 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wTextStartRow.addModifyListener(lsMod);
 		wFormStepStartRow = new FormData();
 		wFormStepStartRow.left = new FormAttachment(wLabelStepStartRow, margin);
-		wFormStepStartRow.top = new FormAttachment(0, margin);
+		wFormStepStartRow.top = new FormAttachment(wSeparator, margin);
 		wFormStepStartRow.right = new FormAttachment(100, -margin);
 		wTextStartRow.setLayoutData(wFormStepStartRow);
 
 		fdStartRow = new FormData();
     	fdStartRow.left = new FormAttachment( 0, margin );
-    	fdStartRow.top = new FormAttachment( 0, margin );
+    	fdStartRow.top = new FormAttachment( wSeparator, margin );
     	fdStartRow.right = new FormAttachment( 100, -margin );
     	wStartRowGroup.setLayoutData( fdStartRow );
 
@@ -705,6 +782,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		getData();
 
 		ActiveFileField();
+		ActiveStartRowField();
 
 		meta.setChanged( changed );
 
@@ -742,6 +820,14 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFilenameList.setEnabled(!wFileField.getSelection());
 	}
 
+	private void ActiveStartRowField() {
+		wlStartRowField.setEnabled(wStartRowField.getSelection());
+		wStartRowSelField.setEnabled(wStartRowField.getSelection());
+
+		wLabelStepStartRow.setEnabled(!wStartRowField.getSelection());
+		wTextStartRow.setEnabled(!wStartRowField.getSelection());
+	}
+
 	private void setFileField() {
 		try {
 
@@ -763,11 +849,32 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		}
 	}
 
+	private void setStartRowField() {
+		try {
+
+			wStartRowSelField.removeAll();
+
+			RowMetaInterface r = transMeta.getPrevStepFields(stepname);
+			if (r != null) {
+				r.getFieldNames();
+
+				for (int i = 0; i < r.getFieldNames().length; i++) {
+					wStartRowSelField.add(r.getFieldNames()[i]);
+
+				}
+			}
+
+		} catch (KettleException ke) {
+			new ErrorDialog(shell, Messages.getString("GetFilesRowsCountDialog.FailedToGetFields.DialogTitle"),
+					Messages.getString("GetFilesRowsCountDialog.FailedToGetFields.DialogMessage"), ke);
+		}
+	}
+
 	/**
 	 * Read the data from the ReadExcelHeaderMeta object and show it in this dialog.
 	 */
 	public void getData() {
-		wTextStartRow.setText(meta.getStartRow());
+		
 		wTextSampleRows.setText(meta.getSampleRows());
 
 		if (meta.getFileName() != null) {
@@ -783,8 +890,14 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		}
 
 		wFileField.setSelection(meta.isFileField());
+		wStartRowField.setSelection(meta.isStartRowField());
 		if (meta.getFilenameField() != null) {
 			wFilenameField.setText(meta.getFilenameField());
+		}
+		if (meta.getStartRowField() != null) {
+			wStartRowSelField.setText(meta.getStartRowField());
+		} else {
+			wTextStartRow.setText(meta.getStartRow());
 		}
 
 		logDebug("Finished getting step data");

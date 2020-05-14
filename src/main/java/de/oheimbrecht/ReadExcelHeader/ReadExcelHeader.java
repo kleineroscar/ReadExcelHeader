@@ -19,15 +19,12 @@
 package de.oheimbrecht.ReadExcelHeader;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.common.escape.Escaper;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.Const;
@@ -103,6 +100,14 @@ public class ReadExcelHeader extends BaseStep {
 			data.rownr = 0;
 			data.filenr = 0;
 			data.totalpreviousfields = 0;
+
+			try {
+				startRow = Integer.parseInt(meta.getStartRow());
+				sampleRows = Integer.parseInt(meta.getSampleRows());
+			} catch (NumberFormatException nfe) {
+				logError("StartRow or SampleRows couldn't be parsed");
+				return false;
+			}
 
 			return true;
 		}
@@ -339,8 +344,12 @@ public class ReadExcelHeader extends BaseStep {
 					throw new KettleStepException(e.getMessage());
 				}
 
+				// TODO Check if for loop is even executed
 				Map<String, String[]> cellInfo = new HashMap<>();
-				for (int k = startRow + 1; k < sampleRows; k++) {
+				log.logDebug("Startrow is: " + startRow);
+				log.logDebug("Samplerows is: " + sampleRows);
+				for (int k = startRow + 1; k <= sampleRows; k++) {
+					log.logDebug("Going into loop for getting cell info with k= " + k);
 					try {
 						XSSFCell cell = sheet.getRow(k).getCell(row.getCell(j).getColumnIndex());
 						log.logDebug("Adding type and style to list: '" + cell.getCellTypeEnum().toString() + "/"

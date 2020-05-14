@@ -65,7 +65,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	@Injection(name = "NUMBER_OF_ROWS_TO_SAMPLE")
 	private String sampleRows;
 
+	private String startRowField;
+
 	private boolean filefield;
+	private boolean startrowfield;
 
 	public static final String[] RequiredFilesDesc = new String[] { Messages.getString("System.Combo.No"),
 			Messages.getString("System.Combo.Yes") };
@@ -145,8 +148,9 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public void setDefault() {
 		filenameField = "";
 		startRow = "0";
-		sampleRows = "1";
+		sampleRows = "10";
 		filefield = false;
+		startrowfield = false;
 
 		int nrFiles = 0;
 
@@ -369,6 +373,14 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		this.filenameField = filenameField;
 	}
 
+	public String getStartRowField() {
+		return startRowField;
+	}
+
+	public void setStartRowField(final String startRowField) {
+		this.startRowField = startRowField;
+	}
+
 	public String getStartRow() {
 		return startRow;
 	}
@@ -391,6 +403,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
 		retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
 		retval.append("    ").append(XMLHandler.addTagValue("filefield", filefield));
+		retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
 
 		retval.append("    <file>").append(Const.CR);
 		for (int i = 0; i < fileName.length; i++) {
@@ -414,6 +427,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			sampleRows = XMLHandler.getTagValue(stepnode, "sampleRows");
 
 			filefield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "filefield"));
+			startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
 
 			Node filenode = XMLHandler.getSubNode(stepnode, "file");
 			int nrFiles = XMLHandler.countNodes(filenode, "name");
@@ -444,6 +458,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			sampleRows = rep.getStepAttributeString(id_step, "sampleRows");
 
 			filefield = rep.getStepAttributeBoolean(id_step, "filefield");
+			startrowfield= rep.getStepAttributeBoolean(id_step, "startrowfield");
 
 			int nrFiles = rep.countNrStepAttributes(id_step, "file_name");
 
@@ -612,5 +627,19 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void setFileField(boolean filefield) {
 		this.filefield = filefield;
+	}
+
+		/**
+	 * @return Returns the start row field.
+	 */
+	public boolean isStartRowField() {
+		return startrowfield;
+	}
+
+	/**
+	 * @param startrowfield The start row field to set.
+	 */
+	public void setStartRowField(boolean startrowfield) {
+		this.startrowfield = startrowfield;
 	}
 }
