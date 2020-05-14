@@ -19,6 +19,7 @@
 package de.oheimbrecht.ReadExcelHeader;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -292,10 +293,13 @@ public class ReadExcelHeader extends BaseStep {
 	}
 
 	private void getHeader(Object[] r) throws KettleStepException {
-		log.logDebug("Filpath is: " + filePath);
+		log.logDebug("Filepath is: " + filePath);
+		filePath = (filePath.contains("file://") ? filePath.substring(7) : filePath);
+		logDebug("cleansed filepath is: " + filePath);
 
 		try {
-			file1InputStream = new URL(filePath).openStream();
+			// file1InputStream = new URL(filePath).openStream();
+			file1InputStream = new FileInputStream(new File(filePath));
 		} catch (IOException e) {
 			log.logDebug("Supplied file: " + filePath);
 			log.logDebug(e.getMessage());
