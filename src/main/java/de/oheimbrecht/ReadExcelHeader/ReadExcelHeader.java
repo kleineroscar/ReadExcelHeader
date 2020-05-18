@@ -313,12 +313,17 @@ public class ReadExcelHeader extends BaseStep {
 
 			try {
 				sheet = workbook1.getSheetAt(i);
+			} catch (Exception e) {
+				log.logError("Unable to read sheet\n" + e.getMessage());
+				throw new KettleStepException("Could not read sheet with number: " + i);
+			}
+			try {
 				row = sheet.getRow(startRow);
 				log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/"
 						+ row.getLastCellNum());
 			} catch (Exception e) {
-				log.logError("Unable to read sheet or row.\n Maybe the row given is empty.\n" + e.getMessage());
-				throw new KettleStepException("Could not read sheet with number: " + i);
+				log.logError("Unable to read row.\nMaybe the row given is empty.\n" + e.getMessage());
+				throw new KettleStepException("Could not read row with startrow: " + startRow);
 			}
 			for (short j = row.getFirstCellNum(); j < row.getLastCellNum(); j++) {
 				// generate output row, make it correct size

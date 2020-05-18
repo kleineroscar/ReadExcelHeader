@@ -7,7 +7,7 @@
   </parent>
   <groupId>de.oheimbrecht</groupId>
   <artifactId>ReadExcelHeader</artifactId>
-  <version>1.1.1</version>
+  <version>1.1.2</version>
   <name>Read Excel Header</name>
   <description>Pentaho Step plugin for reading the header from an excel file</description>
  <developers>
@@ -191,15 +191,15 @@
 									message="Installed the plugin in PDI installation in ${pdi.home}. To test, please restart Spoon." />
 
 								<!-- remove previous installations -->
-								<delete dir="${pdi.home}/plugins/steps/${project.artifactId}" />
+								<!-- <delete dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
 								
 
 								<!-- put fresh files in place -->
- 								<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
+ 								<!-- <mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" /> --> -->
 								
- 								<unzip
- 									src="${project.build.directory}/${project.artifactId}-${project.version}.zip"
- 									dest="${pdi.home}/plugins/steps/" />
+ 								<!-- <unzip -->
+ 									<!-- src="${project.build.directory}/${project.artifactId}-${project.version}.zip" -->
+ 									<!-- dest="${pdi.home}/plugins/steps/" /> -->
 							</target>
 						</configuration>
 					</execution>
