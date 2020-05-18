@@ -101,10 +101,13 @@ public class ReadExcelHeader extends BaseStep {
 			data.totalpreviousfields = 0;
 
 			try {
-				startRow = Integer.parseInt(meta.getStartRow());
-				sampleRows = Integer.parseInt(meta.getSampleRows());
+				startRow = Integer.parseInt(environmentSubstitute(meta.getStartRow()));
+				sampleRows = Integer.parseInt(environmentSubstitute(meta.getSampleRows()));
+				logDebug("Received StartRow: " + startRow + " SampleRows: " + sampleRows);
 			} catch (NumberFormatException nfe) {
 				logError("StartRow or SampleRows couldn't be parsed");
+				logDebug("Startrow: " + meta.getStartRow());
+				logDebug("SampleRow: " + meta.getSampleRows());
 				return false;
 			}
 
