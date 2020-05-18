@@ -322,8 +322,31 @@ public class ReadExcelHeader extends BaseStep {
 				log.logDebug("Found a sheet with the corresponding header row (from/to): " + row.getFirstCellNum() + "/"
 						+ row.getLastCellNum());
 			} catch (Exception e) {
-				log.logError("Unable to read row.\nMaybe the row given is empty.\n" + e.getMessage());
-				throw new KettleStepException("Could not read row with startrow: " + startRow);
+				log.logDebug("Unable to read row.\nMaybe the row given is empty.\n Providing empty row.");
+				Object[] outputRow = RowDataUtil.createResizedCopy(r, data.outputRowMeta.size());
+				int lastMeta = data.outputRowMeta.size();
+				outputRow[lastMeta - 5] = (new File(filePath)).getName();
+				log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in "
+						+ String.valueOf(lastMeta - 5));
+				outputRow[lastMeta - 4] = workbook1.getSheetName(i);
+				log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in "
+						+ String.valueOf(lastMeta - 4));
+				outputRow[lastMeta - 3] = "NO DATA";
+				outputRow[lastMeta - 2] = "NO DATA";
+				outputRow[lastMeta - 1] = "NO DATA";
+				try {
+					workbook1.close();
+					// file1InputStream.close();
+				} catch (Exception wce) {
+					new KettleException("Could not dispose workbook.\n" + wce.getMessage());
+				}
+				try {
+					file1InputStream.close();
+				} catch (IOException fce) {
+					new KettleException("Could not dispose FileInputStream.\n" + fce.getMessage());
+				}
+				continue;
+				// throw new KettleStepException("Could not read row with startrow: " + startRow);
 			}
 			for (short j = row.getFirstCellNum(); j < row.getLastCellNum(); j++) {
 				// generate output row, make it correct size
