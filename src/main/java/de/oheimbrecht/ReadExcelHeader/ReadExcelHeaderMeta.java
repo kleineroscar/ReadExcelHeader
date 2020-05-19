@@ -65,7 +65,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	@Injection(name = "NUMBER_OF_ROWS_TO_SAMPLE")
 	private String sampleRows;
 
-	private String startRowField;
+	private String startRowFieldName;
 
 	private boolean filefield;
 	private boolean startrowfield;
@@ -147,6 +147,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void setDefault() {
 		filenameField = "";
+		startRowFieldName = "";
 		startRow = "0";
 		sampleRows = "10";
 		filefield = false;
@@ -184,6 +185,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	public Object clone() {
 		ReadExcelHeaderMeta retval = (ReadExcelHeaderMeta) super.clone();
 		retval.filenameField = filenameField;
+		retval.startRowFieldName = startRowFieldName;
 		retval.startRow = startRow;
 		retval.sampleRows = sampleRows;
 
@@ -348,11 +350,19 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			remarks.add(cr);
 		}
 
-		if (!startRow.isEmpty()) {
+		if (!startRow.isEmpty() && !startrowfield) {
 			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", stepMeta);
 			remarks.add(cr);
 		} else {
 			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
+			remarks.add(cr);
+		}
+
+		if (!startRowFieldName.isEmpty() && startrowfield) {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a field with a row to start on.", stepMeta);
+			remarks.add(cr);
+		} else {
+			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row field received!", stepMeta);
 			remarks.add(cr);
 		}
 
@@ -373,12 +383,12 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		this.filenameField = filenameField;
 	}
 
-	public String getStartRowField() {
-		return startRowField;
+	public String getStartRowFieldName() {
+		return startRowFieldName;
 	}
 
-	public void setStartRowField(final String startRowField) {
-		this.startRowField = startRowField;
+	public void setStartRowFieldName(final String startRowFieldName) {
+		this.startRowFieldName = startRowFieldName;
 	}
 
 	public String getStartRow() {
@@ -404,6 +414,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
 		retval.append("    ").append(XMLHandler.addTagValue("filefield", filefield));
 		retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
+		retval.append("    ").append(XMLHandler.addTagValue("startrowfieldname", startRowFieldName));
 
 		retval.append("    <file>").append(Const.CR);
 		for (int i = 0; i < fileName.length; i++) {
@@ -428,6 +439,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 
 			filefield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "filefield"));
 			startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
+			startRowFieldName = XMLHandler.getTagValue(stepnode, "startrowfieldname");
 
 			Node filenode = XMLHandler.getSubNode(stepnode, "file");
 			int nrFiles = XMLHandler.countNodes(filenode, "name");
@@ -458,7 +470,8 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			sampleRows = rep.getStepAttributeString(id_step, "sampleRows");
 
 			filefield = rep.getStepAttributeBoolean(id_step, "filefield");
-			startrowfield= rep.getStepAttributeBoolean(id_step, "startrowfield");
+			startrowfield = rep.getStepAttributeBoolean(id_step, "startrowfield");
+			startRowFieldName = rep.getStepAttributeString(id_step, "startrowfieldname");
 
 			int nrFiles = rep.countNrStepAttributes(id_step, "file_name");
 
@@ -490,6 +503,17 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			rep.saveStepAttribute(id_transformation, id_step, "filenamefield", filenameField);
 			rep.saveStepAttribute(id_transformation, id_step, "startrow", startRow);
 			rep.saveStepAttribute(id_transformation, id_step, "sampleRows", sampleRows);
+			rep.saveStepAttribute(id_transformation, id_step, "filefield", filefield);
+			rep.saveStepAttribute(id_transformation, id_step, "startrowfield", startrowfield);
+			rep.saveStepAttribute(id_transformation, id_step, "startrowfieldname", startRowFieldName);
+
+			for (int i = 0; i < fileName.length; i++) {
+				rep.saveStepAttribute(id_transformation, id_step, i, "file_name", fileName[i]);
+				rep.saveStepAttribute(id_transformation, id_step, i, "file_mask", fileMask[i]);
+				rep.saveStepAttribute(id_transformation, id_step, i, "exclude_file_mask", excludeFileMask[i]);
+				rep.saveStepAttribute(id_transformation, id_step, i, "file_required", fileRequired[i]);
+				rep.saveStepAttribute(id_transformation, id_step, i, "include_subfolders", includeSubFolders[i]);
+			}
 		} catch (KettleDatabaseException dbe) {
 			throw new KettleException("Unable to save step information to the repository, id_step=" + id_step, dbe);
 		}
@@ -629,7 +653,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		this.filefield = filefield;
 	}
 
-		/**
+	/**
 	 * @return Returns the start row field.
 	 */
 	public boolean isStartRowField() {

@@ -112,7 +112,8 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 	private ReadExcelHeaderMeta meta;
 	private Label wLabelStepStartRow, wLabelStepSampleRows;
-	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows, fdStartRow, fdSampleRows;
+	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows,
+			fdStartRow, fdSampleRows;
 	private TextVar wTextStartRow, wTextSampleRows;
 	RowMetaInterface inputSteps;
 	private Label wlStartRowField;
@@ -555,12 +556,12 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 		//////////
 
-		wSeparator = new Label( wStartRowGroup, SWT.SEPARATOR | SWT.HORIZONTAL );
-    	fdSeparator = new FormData();
-    	fdSeparator.left = new FormAttachment( 0, 0 );
-    	fdSeparator.right = new FormAttachment( 100, 0 );
-    	fdSeparator.top = new FormAttachment( wStartRowSelField, margin);
-    	wSeparator.setLayoutData( fdSeparator );
+		wSeparator = new Label(wStartRowGroup, SWT.SEPARATOR | SWT.HORIZONTAL);
+		fdSeparator = new FormData();
+		fdSeparator.left = new FormAttachment(0, 0);
+		fdSeparator.right = new FormAttachment(100, 0);
+		fdSeparator.top = new FormAttachment(wStartRowSelField, margin);
+		wSeparator.setLayoutData(fdSeparator);
 
 		// start row line
 		wLabelStepStartRow = new Label(wStartRowGroup, SWT.RIGHT);
@@ -583,10 +584,10 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wTextStartRow.setLayoutData(wFormStepStartRow);
 
 		fdStartRow = new FormData();
-    	fdStartRow.left = new FormAttachment( 0, margin );
-    	fdStartRow.top = new FormAttachment( wSeparator, margin );
-    	fdStartRow.right = new FormAttachment( 100, -margin );
-    	wStartRowGroup.setLayoutData( fdStartRow );
+		fdStartRow.left = new FormAttachment(0, margin);
+		fdStartRow.top = new FormAttachment(wSeparator, margin);
+		fdStartRow.right = new FormAttachment(100, -margin);
+		wStartRowGroup.setLayoutData(fdStartRow);
 
 		// ///////////////////////////////////////////////////////////
 		// / END OF START ROW GROUP
@@ -623,10 +624,10 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		wFormStepSampleRows.right = new FormAttachment(100, -margin);
 		wTextSampleRows.setLayoutData(wFormStepSampleRows);
 		fdSampleRows = new FormData();
-    	fdSampleRows.left = new FormAttachment( 0, margin );
-    	fdSampleRows.top = new FormAttachment( wStartRowGroup, margin );
-    	fdSampleRows.right = new FormAttachment( 100, -margin );
-    	wSampleRowsGroup.setLayoutData( fdSampleRows );
+		fdSampleRows.left = new FormAttachment(0, margin);
+		fdSampleRows.top = new FormAttachment(wStartRowGroup, margin);
+		fdSampleRows.right = new FormAttachment(100, -margin);
+		wSampleRowsGroup.setLayoutData(fdSampleRows);
 
 		// /////////////////////////////////
 		// END OF SAMPLE ROWS GROUP
@@ -771,7 +772,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			}
 		});
 
-		wTabFolder.setSelection( 0 );
+		wTabFolder.setSelection(0);
 
 		// Set/Restore the dialog size based on last position on screen
 		// The setSize() method is inherited from BaseStepDialog
@@ -784,7 +785,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		ActiveFileField();
 		ActiveStartRowField();
 
-		meta.setChanged( changed );
+		meta.setChanged(changed);
 
 		// open dialog and enter event loop
 		shell.open();
@@ -874,7 +875,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	 * Read the data from the ReadExcelHeaderMeta object and show it in this dialog.
 	 */
 	public void getData() {
-		
+
 		wTextSampleRows.setText(meta.getSampleRows());
 
 		if (meta.getFileName() != null) {
@@ -894,8 +895,8 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		if (meta.getFilenameField() != null) {
 			wFilenameField.setText(meta.getFilenameField());
 		}
-		if (meta.getStartRowField() != null) {
-			wStartRowSelField.setText(meta.getStartRowField());
+		if (meta.isStartRowField()) {
+			wStartRowSelField.setText(meta.getStartRowFieldName());
 		} else {
 			wTextStartRow.setText(meta.getStartRow());
 		}
@@ -915,11 +916,15 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		meta.setExcludeFileMask(wFilenameList.getItems(2));
 		meta.setFileRequired(wFilenameList.getItems(3));
 		meta.setIncludeSubFolders(wFilenameList.getItems(4));
-		meta.setStartRow(wTextStartRow.getText());
+
 		meta.setSampleRows(wTextSampleRows.getText());
 
-		meta.setFileField( wFileField.getSelection() );
-    	meta.setFileNameField( wFilenameField.getText() );
+		meta.setStartRowField(wStartRowField.getSelection());
+		meta.setStartRowFieldName(wStartRowSelField.getText());
+		meta.setStartRow(wTextStartRow.getText());
+
+		meta.setFileField(wFileField.getSelection());
+		meta.setFileNameField(wFilenameField.getText());
 	}
 
 	private void cancel() {

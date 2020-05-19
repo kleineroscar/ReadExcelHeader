@@ -30,6 +30,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
+import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.util.Utils;
@@ -101,12 +102,10 @@ public class ReadExcelHeader extends BaseStep {
 			data.totalpreviousfields = 0;
 
 			try {
-				startRow = Integer.parseInt(environmentSubstitute(meta.getStartRow()));
 				sampleRows = Integer.parseInt(environmentSubstitute(meta.getSampleRows()));
 				logDebug("Received StartRow: " + startRow + " SampleRows: " + sampleRows);
 			} catch (NumberFormatException nfe) {
-				logError("StartRow or SampleRows couldn't be parsed");
-				logDebug("Startrow: " + meta.getStartRow());
+				logError("SampleRows couldn't be parsed");
 				logDebug("SampleRow: " + meta.getSampleRows());
 				return false;
 			}
@@ -129,7 +128,12 @@ public class ReadExcelHeader extends BaseStep {
 				r = data.readrow.clone();
 				r = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
 			} else {
-				r = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+				if (meta.isStartRowField()) {
+					r = data.readrow.clone();
+					r = RowDataUtil.resizeArray(r, data.outputRowMeta.size());
+				} else {
+					r = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+				}
 			}
 
 			r[data.totalpreviousfields] = data.rownr;
@@ -138,6 +142,34 @@ public class ReadExcelHeader extends BaseStep {
 
 		} catch (Exception e) {
 			throw new KettleException("Unable to read row from file", e);
+		}
+		int indexOfStartRowField = -1;
+		try {
+			if (meta.isStartRowField()) {
+				indexOfStartRowField = data.inputRowMeta.indexOfValue(meta.getStartRowFieldName());
+				if (indexOfStartRowField < 0) {
+					// The field is unreachable !
+					logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingStartRowField",
+							meta.getFileNameField()));
+					throw new KettleException(Messages.getString(
+							"ReadExcelHeaderDialog.Exception.CouldnotFindStartRowField", meta.getStartRowFieldName()));
+				}
+				startRow = Integer.parseInt(data.inputRowMeta.getString(r, indexOfStartRowField));
+			} else {
+				startRow = Integer.parseInt(environmentSubstitute(meta.getStartRow()));
+			}
+		} catch (NumberFormatException nfe) {
+			logError("StartRow couldn't be parsed");
+			logDebug("Startrow: " + meta.getStartRow());
+			logDebug("Startrow from field: " + data.inputRowMeta.getString(r, indexOfStartRowField));
+			logDebug("Startrow field index: " + indexOfStartRowField);
+			throw new KettleValueException("StartRow couldn't be parsed.");
+		} catch (Exception e) {
+			logError("Isstartrowfield: " + meta.isStartRowField());
+			logError("startrowfieldname: " + meta.getStartRowFieldName());
+			logError("startrow: " + meta.getStartRow());
+			logError("data.inputRowMeta null?: " + (data.inputRowMeta == null ? "yes" : "no"));
+			throw new KettleValueException("Some other error");
 		}
 
 		return r;
@@ -162,19 +194,10 @@ public class ReadExcelHeader extends BaseStep {
 			}
 			r = outputRowData;
 
-			// if ((!meta.isFileField() && data.last_file) || meta.isFileField()) {
-			// putRow(data.outputRowMeta, outputRowData); // copy row to output rowset(s);
-			// if (log.isDetailed()) {
-			// logDetailed(BaseMessages.getString(PKG,
-			// "GetFilesRowsCount.Log.TotalRowsFiles"), data.rownr,
-			// data.filenr);
-			// }
-			// }
-			
 			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
 			logDebug("data.file is: " + data.file.toString());
 			filePath = data.file.toString();
-			
+
 			getHeader(r);
 			// indicate that processRow() should be called again
 			return true;
@@ -198,6 +221,30 @@ public class ReadExcelHeader extends BaseStep {
 
 		try {
 			if (!meta.isFileField()) {
+				if (meta.isStartRowField()) {
+					data.readrow = getRow(); // Get row from input rowset & set row busy!
+					if (data.readrow == null) {
+						if (log.isDetailed()) {
+							logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+						}
+						return false;
+					}
+
+					data.inputRowMeta = getInputRowMeta();
+					data.outputRowMeta = data.inputRowMeta.clone();
+					meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore);
+
+					// Get total previous fields
+					data.totalpreviousfields = data.inputRowMeta.size();
+
+					// Check is start field is provided
+					if (Utils.isEmpty(meta.getStartRowFieldName())) {
+						logError(Messages.getString("ReadExcelHeaderDialog.Log.NoStartRowField"));
+						throw new KettleException(Messages.getString("ReadExcelHeaderDialog.Log.NoStartRowField"));
+					}
+
+				}
+
 				if (data.filenr >= data.files.nrOfFiles()) {
 					// finished processing!
 
@@ -277,8 +324,7 @@ public class ReadExcelHeader extends BaseStep {
 			// }
 
 		} catch (Exception e) {
-			logError(Messages.getString("ReadExcelHeaderDialog.Log.UnableToOpenFile", "" + data.filenr,
-					data.file.toString(), e.toString()));
+			logError(Messages.getString("ReadExcelHeaderDialog.Log.UnableToOpenFile", "" + e.toString()));
 			stopAll();
 			setErrors(1);
 			return false;
@@ -329,12 +375,12 @@ public class ReadExcelHeader extends BaseStep {
 				log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in "
 						+ String.valueOf(lastMeta - 5));
 				outputRow[lastMeta - 4] = workbook1.getSheetName(i);
-				log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in "
-						+ String.valueOf(lastMeta - 4));
+				log.logRowlevel(
+						"Got sheet name: " + outputRow[lastMeta - 4] + " setting in " + String.valueOf(lastMeta - 4));
 				outputRow[lastMeta - 3] = "NO DATA";
 				outputRow[lastMeta - 2] = "NO DATA";
 				outputRow[lastMeta - 1] = "NO DATA";
-				
+
 				try {
 					workbook1.close();
 					// file1InputStream.close();
@@ -347,7 +393,8 @@ public class ReadExcelHeader extends BaseStep {
 					new KettleException("Could not dispose FileInputStream.\n" + fce.getMessage());
 				}
 				continue;
-				// throw new KettleStepException("Could not read row with startrow: " + startRow);
+				// throw new KettleStepException("Could not read row with startrow: " +
+				// startRow);
 			}
 			for (short j = row.getFirstCellNum(); j < row.getLastCellNum(); j++) {
 				// generate output row, make it correct size
