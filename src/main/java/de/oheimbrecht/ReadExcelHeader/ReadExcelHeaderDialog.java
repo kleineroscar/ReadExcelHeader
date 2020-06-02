@@ -110,6 +110,23 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private CCombo wFilenameField;
 	private FormData fdlFileField, fdFileField;
 
+	private Label wlWildcardField;
+	private CCombo wWildcardField;
+	private FormData fdlWildcardField, fdWildcardField;
+
+	private Label wlExcludeWildcardField;
+	private CCombo wExcludeWildcardField;
+	private FormData fdlExcludeWildcardField, fdExcludeWildcardField;
+
+	private Label wlIncludeSubFolder;
+	private FormData fdlIncludeSubFolder;
+	private Button wIncludeSubFolder;
+	private FormData fdIncludeSubFolder;
+
+	private Label wldoNotFailIfNoFile;
+	private Button wdoNotFailIfNoFile;
+	private FormData fdldoNotFailIfNoFile, fddoNotFailIfNoFile;
+
 	private ReadExcelHeaderMeta meta;
 	private Label wLabelStepStartRow, wLabelStepSampleRows;
 	private FormData wFormLabelStepStartRow, wFormStepStartRow, wFormLabelStepSampleRows, wFormStepSampleRows,
@@ -126,6 +143,8 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private FormData fdStartRowSelField;
 	private Label wSeparator;
 	private FormData fdSeparator;
+
+	private boolean getpreviousFields = false;
 
 	public ReadExcelHeaderDialog(Shell parent, Object in, TransMeta transMeta, String sname) {
 		super(parent, (BaseStepMeta) in, transMeta, sname);
@@ -270,6 +289,7 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		SelectionAdapter lfilefield = new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent arg0) {
 				ActiveFileField();
+				setFileField();
 				meta.setChanged(true);
 			}
 		};
@@ -304,6 +324,70 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 				setFileField();
 				shell.setCursor(null);
 				busy.dispose();
+			}
+		});
+
+		// Wildcard field
+		wlWildcardField = new Label(wOriginFiles, SWT.RIGHT);
+		wlWildcardField.setText(Messages.getString("ReadExcelHeaderDialog.wlWildcardField.Label"));
+		props.setLook(wlWildcardField);
+		fdlWildcardField = new FormData();
+		fdlWildcardField.left = new FormAttachment(0, -margin);
+		fdlWildcardField.top = new FormAttachment(wFilenameField, margin);
+		fdlWildcardField.right = new FormAttachment(middle, -2 * margin);
+		wlWildcardField.setLayoutData(fdlWildcardField);
+
+		wWildcardField = new CCombo(wOriginFiles, SWT.BORDER | SWT.READ_ONLY);
+		wWildcardField.setEditable(true);
+		props.setLook(wWildcardField);
+		wWildcardField.addModifyListener(lsMod);
+		fdWildcardField = new FormData();
+		fdWildcardField.left = new FormAttachment(middle, -margin);
+		fdWildcardField.top = new FormAttachment(wFilenameField, margin);
+		fdWildcardField.right = new FormAttachment(100, -margin);
+		wWildcardField.setLayoutData(fdWildcardField);
+
+		// ExcludeWildcard field
+		wlExcludeWildcardField = new Label(wOriginFiles, SWT.RIGHT);
+		wlExcludeWildcardField.setText(Messages.getString("ReadExcelHeaderDialog.wlExcludeWildcardField.Label"));
+		props.setLook(wlExcludeWildcardField);
+		fdlExcludeWildcardField = new FormData();
+		fdlExcludeWildcardField.left = new FormAttachment(0, -margin);
+		fdlExcludeWildcardField.top = new FormAttachment(wWildcardField, margin);
+		fdlExcludeWildcardField.right = new FormAttachment(middle, -2 * margin);
+		wlExcludeWildcardField.setLayoutData(fdlExcludeWildcardField);
+
+		wExcludeWildcardField = new CCombo(wOriginFiles, SWT.BORDER | SWT.READ_ONLY);
+		wExcludeWildcardField.setEditable(true);
+		props.setLook(wExcludeWildcardField);
+		wExcludeWildcardField.addModifyListener(lsMod);
+		fdExcludeWildcardField = new FormData();
+		fdExcludeWildcardField.left = new FormAttachment(middle, -margin);
+		fdExcludeWildcardField.top = new FormAttachment(wWildcardField, margin);
+		fdExcludeWildcardField.right = new FormAttachment(100, -margin);
+		wExcludeWildcardField.setLayoutData(fdExcludeWildcardField);
+
+		// Is includeSubFoldername defined in a Field
+		wlIncludeSubFolder = new Label(wOriginFiles, SWT.RIGHT);
+		wlIncludeSubFolder.setText(Messages.getString("ReadExcelHeaderDialog.includeSubFolder.Label"));
+		props.setLook(wlIncludeSubFolder);
+		fdlIncludeSubFolder = new FormData();
+		fdlIncludeSubFolder.left = new FormAttachment(0, -margin);
+		fdlIncludeSubFolder.top = new FormAttachment(wExcludeWildcardField, margin);
+		fdlIncludeSubFolder.right = new FormAttachment(middle, -2 * margin);
+		wlIncludeSubFolder.setLayoutData(fdlIncludeSubFolder);
+
+		wIncludeSubFolder = new Button(wOriginFiles, SWT.CHECK);
+		props.setLook(wIncludeSubFolder);
+		wIncludeSubFolder.setToolTipText(Messages.getString("ReadExcelHeaderDialog.includeSubFolder.Tooltip"));
+		fdIncludeSubFolder = new FormData();
+		fdIncludeSubFolder.left = new FormAttachment(middle, -margin);
+		fdIncludeSubFolder.top = new FormAttachment(wExcludeWildcardField, margin);
+		wIncludeSubFolder.setLayoutData(fdIncludeSubFolder);
+		wIncludeSubFolder.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent selectionEvent) {
+				meta.setChanged();
 			}
 		});
 
@@ -633,6 +717,29 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 		// END OF SAMPLE ROWS GROUP
 		// /////////////////////////////////
 
+		// do not fail if no files?
+		wldoNotFailIfNoFile = new Label(wContentComp, SWT.RIGHT);
+		wldoNotFailIfNoFile.setText(Messages.getString("ReadExcelHeaderDialog.doNotFailIfNoFile.Label"));
+		props.setLook(wldoNotFailIfNoFile);
+		fdldoNotFailIfNoFile = new FormData();
+		fdldoNotFailIfNoFile.left = new FormAttachment(0, 0);
+		fdldoNotFailIfNoFile.top = new FormAttachment(wSampleRowsGroup, 2 * margin);
+		fdldoNotFailIfNoFile.right = new FormAttachment(middle, -margin);
+		wldoNotFailIfNoFile.setLayoutData(fdldoNotFailIfNoFile);
+		wdoNotFailIfNoFile = new Button(wContentComp, SWT.CHECK);
+		props.setLook(wdoNotFailIfNoFile);
+		wdoNotFailIfNoFile.setToolTipText(Messages.getString("ReadExcelHeaderDialog.doNotFailIfNoFile.Tooltip"));
+		fddoNotFailIfNoFile = new FormData();
+		fddoNotFailIfNoFile.left = new FormAttachment(middle, 0);
+		fddoNotFailIfNoFile.top = new FormAttachment(wSampleRowsGroup, 2 * margin);
+		wdoNotFailIfNoFile.setLayoutData(fddoNotFailIfNoFile);
+		wdoNotFailIfNoFile.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent selectionEvent) {
+				meta.setChanged();
+			}
+		});
+
 		fdContentComp = new FormData();
 		fdContentComp.left = new FormAttachment(0, 0);
 		fdContentComp.top = new FormAttachment(0, 0);
@@ -804,6 +911,12 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 	private void ActiveFileField() {
 		wlFilenameField.setEnabled(wFileField.getSelection());
 		wFilenameField.setEnabled(wFileField.getSelection());
+		wlWildcardField.setEnabled(wFileField.getSelection());
+		wWildcardField.setEnabled(wFileField.getSelection());
+		wlExcludeWildcardField.setEnabled(wFileField.getSelection());
+		wExcludeWildcardField.setEnabled(wFileField.getSelection());
+		wlIncludeSubFolder.setEnabled(wFileField.getSelection());
+		wIncludeSubFolder.setEnabled(wFileField.getSelection());
 
 		wlFilename.setEnabled(!wFileField.getSelection());
 		wbbFilename.setEnabled(!wFileField.getSelection());
@@ -831,19 +944,32 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 	private void setFileField() {
 		try {
+			if (!getpreviousFields) {
+				getpreviousFields = true;
+				String filename = wFilenameField.getText();
+				String wildcard = wWildcardField.getText();
+				String excludewildcard = wExcludeWildcardField.getText();
 
-			wFilenameField.removeAll();
+				wFilenameField.removeAll();
+				wWildcardField.removeAll();
+				wExcludeWildcardField.removeAll();
 
-			RowMetaInterface r = transMeta.getPrevStepFields(stepname);
-			if (r != null) {
-				r.getFieldNames();
-
-				for (int i = 0; i < r.getFieldNames().length; i++) {
-					wFilenameField.add(r.getFieldNames()[i]);
-
+				RowMetaInterface r = transMeta.getPrevStepFields(stepname);
+				if (r != null) {
+					wFilenameField.setItems(r.getFieldNames());
+					wWildcardField.setItems(r.getFieldNames());
+					wExcludeWildcardField.setItems(r.getFieldNames());
+				}
+				if (filename != null) {
+					wFilenameField.setText(filename);
+				}
+				if (wildcard != null) {
+					wWildcardField.setText(wildcard);
+				}
+				if (excludewildcard != null) {
+					wExcludeWildcardField.setText(excludewildcard);
 				}
 			}
-
 		} catch (KettleException ke) {
 			new ErrorDialog(shell, Messages.getString("GetFilesRowsCountDialog.FailedToGetFields.DialogTitle"),
 					Messages.getString("GetFilesRowsCountDialog.FailedToGetFields.DialogMessage"), ke);
@@ -890,11 +1016,21 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			wFilenameList.optWidth(true);
 		}
 
+		// TODO: check if this is the correct spot, or rather in the if clause above
+		wdoNotFailIfNoFile.setSelection(meta.isdoNotFailIfNoFile());
+
 		wFileField.setSelection(meta.isFileField());
 		wStartRowField.setSelection(meta.isStartRowField());
 		if (meta.getFilenameField() != null) {
 			wFilenameField.setText(meta.getFilenameField());
 		}
+		if (meta.getDynamicWildcardField() != null) {
+			wWildcardField.setText(meta.getDynamicWildcardField());
+		}
+		if (meta.getDynamicExcludeWildcardField() != null) {
+			wExcludeWildcardField.setText(meta.getDynamicExcludeWildcardField());
+		}
+		wIncludeSubFolder.setSelection(meta.isDynamicIncludeSubFolders());
 		if (meta.isStartRowField()) {
 			wStartRowSelField.setText(meta.getStartRowFieldName());
 		} else {
@@ -925,6 +1061,10 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 
 		meta.setFileField(wFileField.getSelection());
 		meta.setFileNameField(wFilenameField.getText());
+		meta.setDynamicWildcardField( wWildcardField.getText() );
+    	meta.setDynamicExcludeWildcardField( wExcludeWildcardField.getText() );
+		meta.setDynamicIncludeSubFolders( wIncludeSubFolder.getSelection() );
+    	meta.setdoNotFailIfNoFile( wdoNotFailIfNoFile.getSelection() );
 	}
 
 	private void cancel() {

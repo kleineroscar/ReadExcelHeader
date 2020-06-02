@@ -70,6 +70,12 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	private boolean filefield;
 	private boolean startrowfield;
 
+	private String dynamicWildcardField;
+	private String dynamicExcludeWildcardField;
+	private boolean dynamicIncludeSubFolders;
+	/** Flag : do not fail if no file */
+	private boolean doNotFailIfNoFile;
+
 	public static final String[] RequiredFilesDesc = new String[] { Messages.getString("System.Combo.No"),
 			Messages.getString("System.Combo.Yes") };
 	public static final String[] RequiredFilesCode = new String[] { "N", "Y" };
@@ -152,6 +158,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		sampleRows = "10";
 		filefield = false;
 		startrowfield = false;
+		dynamicWildcardField = "";
+		dynamicIncludeSubFolders = false;
+		dynamicExcludeWildcardField = "";
+		doNotFailIfNoFile = false;
 
 		int nrFiles = 0;
 
@@ -289,6 +299,12 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 				includeSubFolderBoolean());
 	}
 
+	public FileInputList getDynamicFileList(VariableSpace space, String[] filename, String[] filemask,
+			String[] excludefilemask, String[] filerequired, boolean[] includesubfolders) {
+		return FileInputList.createFileList(space, filename, filemask, excludefilemask, filerequired,
+				includesubfolders);
+	}
+
 	private boolean[] includeSubFolderBoolean() {
 		int len = fileName.length;
 		boolean[] includeSubFolderBoolean = new boolean[len];
@@ -415,6 +431,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		retval.append("    ").append(XMLHandler.addTagValue("filefield", filefield));
 		retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
 		retval.append("    ").append(XMLHandler.addTagValue("startrowfieldname", startRowFieldName));
+		retval.append("    ").append(XMLHandler.addTagValue("wildcard_Field", dynamicWildcardField));
+		retval.append("    ").append(XMLHandler.addTagValue("exclude_wildcard_Field", dynamicExcludeWildcardField));
+		retval.append("    ").append(XMLHandler.addTagValue("dynamic_include_subfolders", dynamicIncludeSubFolders));
+		retval.append("    ").append(XMLHandler.addTagValue("doNotFailIfNoFile", doNotFailIfNoFile));
 
 		retval.append("    <file>").append(Const.CR);
 		for (int i = 0; i < fileName.length; i++) {
@@ -440,6 +460,12 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			filefield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "filefield"));
 			startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
 			startRowFieldName = XMLHandler.getTagValue(stepnode, "startrowfieldname");
+
+			dynamicWildcardField = XMLHandler.getTagValue(stepnode, "wildcard_Field");
+			dynamicExcludeWildcardField = XMLHandler.getTagValue(stepnode, "exclude_wildcard_Field");
+			dynamicIncludeSubFolders = "Y"
+					.equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "dynamic_include_subfolders"));
+			doNotFailIfNoFile = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "doNotFailIfNoFile"));
 
 			Node filenode = XMLHandler.getSubNode(stepnode, "file");
 			int nrFiles = XMLHandler.countNodes(filenode, "name");
@@ -472,6 +498,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			filefield = rep.getStepAttributeBoolean(id_step, "filefield");
 			startrowfield = rep.getStepAttributeBoolean(id_step, "startrowfield");
 			startRowFieldName = rep.getStepAttributeString(id_step, "startrowfieldname");
+			doNotFailIfNoFile = rep.getStepAttributeBoolean(id_step, "doNotFailIfNoFile");
+			dynamicWildcardField = rep.getStepAttributeString(id_step, "wildcard_Field");
+			dynamicExcludeWildcardField = rep.getStepAttributeString(id_step, "exclude_wildcard_Field");
+			dynamicIncludeSubFolders = rep.getStepAttributeBoolean(id_step, "dynamic_include_subfolders");
 
 			int nrFiles = rep.countNrStepAttributes(id_step, "file_name");
 
@@ -506,6 +536,10 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 			rep.saveStepAttribute(id_transformation, id_step, "filefield", filefield);
 			rep.saveStepAttribute(id_transformation, id_step, "startrowfield", startrowfield);
 			rep.saveStepAttribute(id_transformation, id_step, "startrowfieldname", startRowFieldName);
+			rep.saveStepAttribute(id_transformation, id_step, "wildcard_Field", dynamicWildcardField);
+			rep.saveStepAttribute(id_transformation, id_step, "exclude_wildcard_Field", dynamicExcludeWildcardField);
+			rep.saveStepAttribute(id_transformation, id_step, "dynamic_include_subfolders", dynamicIncludeSubFolders);
+			rep.saveStepAttribute(id_transformation, id_step, "doNotFailIfNoFile", doNotFailIfNoFile);
 
 			for (int i = 0; i < fileName.length; i++) {
 				rep.saveStepAttribute(id_transformation, id_step, i, "file_name", fileName[i]);
@@ -563,6 +597,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	}
 
 	public void setFileRequired(String[] fileRequiredin) {
+		this.fileRequired = new String[fileRequiredin.length];
 		for (int i = 0; i < fileRequiredin.length; i++) {
 			this.fileRequired[i] = getRequiredFilesCode(fileRequiredin[i]);
 		}
@@ -573,6 +608,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	}
 
 	public void setIncludeSubFolders(String[] includeSubFoldersin) {
+		this.includeSubFolders = new String[includeSubFoldersin.length];
 		for (int i = 0; i < includeSubFoldersin.length; i++) {
 			this.includeSubFolders[i] = getRequiredFilesCode(includeSubFoldersin[i]);
 		}
@@ -665,5 +701,52 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 	 */
 	public void setStartRowField(boolean startrowfield) {
 		this.startrowfield = startrowfield;
+	}
+
+	/**
+	 * @return the doNotFailIfNoFile flag
+	 */
+	public boolean isdoNotFailIfNoFile() {
+		return doNotFailIfNoFile;
+	}
+
+	/**
+	 * @param doNotFailIfNoFile the doNotFailIfNoFile to set
+	 */
+	public void setdoNotFailIfNoFile(boolean doNotFailIfNoFile) {
+		this.doNotFailIfNoFile = doNotFailIfNoFile;
+	}
+
+	/**
+	 * @param dynamicWildcardField The dynamic wildcard field to set.
+	 */
+	public void setDynamicWildcardField(String dynamicWildcardField) {
+		this.dynamicWildcardField = dynamicWildcardField;
+	}
+
+	/**
+	 * @return Returns the dynamic wildcard field (from previous steps)
+	 */
+	public String getDynamicWildcardField() {
+		return dynamicWildcardField;
+	}
+
+	public String getDynamicExcludeWildcardField() {
+		return this.dynamicExcludeWildcardField;
+	}
+
+	/**
+	 * @param excludeWildcard The dynamic excludeWildcard field to set.
+	 */
+	public void setDynamicExcludeWildcardField(String dynamicExcludeWildcardField) {
+		this.dynamicExcludeWildcardField = dynamicExcludeWildcardField;
+	}
+
+	public boolean isDynamicIncludeSubFolders() {
+		return dynamicIncludeSubFolders;
+	}
+
+	public void setDynamicIncludeSubFolders(boolean dynamicIncludeSubFolders) {
+		this.dynamicIncludeSubFolders = dynamicIncludeSubFolders;
 	}
 }

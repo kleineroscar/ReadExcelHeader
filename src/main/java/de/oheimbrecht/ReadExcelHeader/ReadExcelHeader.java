@@ -24,7 +24,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.vfs2.FileObject;
+import org.pentaho.di.core.fileinput.FileInputList;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.Const;
@@ -79,11 +83,13 @@ public class ReadExcelHeader extends BaseStep {
 
 			if (!meta.isFileField()) {
 				data.files = meta.getFiles(this);
+
 				if (data.files == null || data.files.nrOfFiles() == 0) {
 					logError(Messages.getString("ReadExcelHeaderDialog.Log.NoFiles"));
 					return false;
 				}
 				try {
+					handleMissingFiles();
 					// Create the output row meta-data
 					data.outputRowMeta = new RowMeta();
 					meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, metaStore); // get
@@ -113,6 +119,45 @@ public class ReadExcelHeader extends BaseStep {
 			return true;
 		}
 		return false;
+	}
+
+	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
+
+		// safely cast the step settings (meta) and runtime info (data) to specific
+		// implementations
+		meta = (ReadExcelHeaderMeta) smi;
+		data = (ReadExcelHeaderData) sdi;
+
+		// get incoming row, getRow() potentially blocks waiting for more rows, returns
+		// null if no more rows expected
+		Object[] r;// = getRow();
+
+		try {
+			Object[] outputRowData = getOneRow();
+			if (outputRowData == null) {
+				setOutputDone(); // signal end to receiver(s)
+				return false; // end of data or error.
+			}
+			r = outputRowData;
+
+			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
+			logDebug("data.file is: " + data.file.toString());
+			filePath = data.file.toString();
+
+			getHeader(r);
+			// indicate that processRow() should be called again
+			return true;
+
+		} catch (KettleException e) {
+
+			logError(Messages.getString("ReadExcelHeaderDialog.ErrorInStepRunning", e.getMessage()));
+			setErrors(1);
+			stopAll();
+			setOutputDone(); // signal end to receiver(s)
+			return false;
+		}
+		// return true;
+
 	}
 
 	private Object[] getOneRow() throws KettleException {
@@ -173,45 +218,6 @@ public class ReadExcelHeader extends BaseStep {
 		}
 
 		return r;
-	}
-
-	public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException {
-
-		// safely cast the step settings (meta) and runtime info (data) to specific
-		// implementations
-		meta = (ReadExcelHeaderMeta) smi;
-		data = (ReadExcelHeaderData) sdi;
-
-		// get incoming row, getRow() potentially blocks waiting for more rows, returns
-		// null if no more rows expected
-		Object[] r;// = getRow();
-
-		try {
-			Object[] outputRowData = getOneRow();
-			if (outputRowData == null) {
-				setOutputDone(); // signal end to receiver(s)
-				return false; // end of data or error.
-			}
-			r = outputRowData;
-
-			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
-			logDebug("data.file is: " + data.file.toString());
-			filePath = data.file.toString();
-
-			getHeader(r);
-			// indicate that processRow() should be called again
-			return true;
-
-		} catch (KettleException e) {
-
-			logError(Messages.getString("ReadExcelHeaderDialog.ErrorInStepRunning", e.getMessage()));
-			setErrors(1);
-			stopAll();
-			setOutputDone(); // signal end to receiver(s)
-			return false;
-		}
-		// return true;
-
 	}
 
 	private boolean openNextFile() {
@@ -294,6 +300,35 @@ public class ReadExcelHeader extends BaseStep {
 									"ReadExcelHeaderDialog.Exception.CouldnotFindField", meta.getFileNameField()));
 						}
 					}
+					// If wildcard field is specified, Check if field exists
+					if (!Utils.isEmpty(meta.getDynamicWildcardField())) {
+						if (data.indexOfWildcardField < 0) {
+							data.indexOfWildcardField = data.inputRowMeta.indexOfValue(meta.getDynamicWildcardField());
+							if (data.indexOfWildcardField < 0) {
+								// The field is unreachable !
+								logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
+										+ meta.getDynamicWildcardField() + "]");
+								throw new KettleException(
+										Messages.getString("ReadExcelHeaderDialog.Exception.CouldnotFindField",
+												meta.getDynamicWildcardField()));
+							}
+						}
+					}
+					// If ExcludeWildcard field is specified, Check if field exists
+					if (!Utils.isEmpty(meta.getDynamicExcludeWildcardField())) {
+						if (data.indexOfExcludeWildcardField < 0) {
+							data.indexOfExcludeWildcardField = data.inputRowMeta
+									.indexOfValue(meta.getDynamicExcludeWildcardField());
+							if (data.indexOfExcludeWildcardField < 0) {
+								// The field is unreachable !
+								logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
+										+ meta.getDynamicExcludeWildcardField() + "]");
+								throw new KettleException(
+										Messages.getString("ReadExcelHeaderDialog.Exception.CouldnotFindField",
+												meta.getDynamicExcludeWildcardField()));
+							}
+						}
+					}
 
 				} // End if first
 
@@ -302,8 +337,29 @@ public class ReadExcelHeader extends BaseStep {
 					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
 							meta.getFileNameField(), filename));
 				}
+				String wildcard = "";
+				if (data.indexOfWildcardField >= 0) {
+					wildcard = getInputRowMeta().getString(data.readrow, data.indexOfWildcardField);
+				}
+				String excludewildcard = "";
+				if (data.indexOfExcludeWildcardField >= 0) {
+					excludewildcard = getInputRowMeta().getString(data.readrow, data.indexOfExcludeWildcardField);
+				}
 
-				data.file = KettleVFS.getFileObject(filename, getTransMeta());
+				String[] filesname = { filename };
+				String[] filesmask = { wildcard };
+				String[] excludefilesmask = { excludewildcard };
+				String[] filesrequired = { "N" };
+				boolean[] includesubfolders = { meta.isDynamicIncludeSubFolders() };
+
+				data.files = meta.getDynamicFileList(this, filesname, filesmask, excludefilesmask, filesrequired,
+						includesubfolders);
+
+				// data.filessize = data.files.nrOfFiles();
+				data.file = data.files.getFile( 0 );
+
+				String tempFilename = KettleVFS.getFilename( data.file );
+				data.file = KettleVFS.getFileObject(tempFilename, getTransMeta());
 
 				// Init Row number
 				if (meta.isFileField()) {
@@ -330,6 +386,27 @@ public class ReadExcelHeader extends BaseStep {
 			return false;
 		}
 		return true;
+	}
+
+	private void handleMissingFiles() throws KettleException {
+		if (!meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
+			logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
+			return;
+		}
+		List<FileObject> nonExistantFiles = data.files.getNonExistantFiles();
+
+		if (nonExistantFiles.size() != 0) {
+			String message = FileInputList.getRequiredFilesDescription(nonExistantFiles);
+			logBasic("ERROR: Missing " + message);
+			throw new KettleException("Following required files are missing: " + message);
+		}
+
+		List<FileObject> nonAccessibleFiles = data.files.getNonAccessibleFiles();
+		if (nonAccessibleFiles.size() != 0) {
+			String message = FileInputList.getRequiredFilesDescription(nonAccessibleFiles);
+			logBasic("WARNING: Not accessible " + message);
+			throw new KettleException("Following required files are not accessible: " + message);
+		}
 	}
 
 	private void getHeader(Object[] r) throws KettleStepException {

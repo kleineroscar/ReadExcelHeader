@@ -34,6 +34,8 @@ public class ReadExcelHeaderData extends BaseStepData {
 	public int totalpreviousfields;
 	public long rownr;
 	public int indexOfFilenameField;
+	public int indexOfWildcardField;
+  	public int indexOfExcludeWildcardField;
 
 	public ReadExcelHeaderData() {
 			super();
@@ -41,5 +43,7 @@ public class ReadExcelHeaderData extends BaseStepData {
 			readrow = null;
 			totalpreviousfields = 0;
 			indexOfFilenameField = -1;
+			indexOfWildcardField = -1;
+			indexOfExcludeWildcardField = -1;
 		}
 }
