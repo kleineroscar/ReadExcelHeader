@@ -359,7 +359,7 @@ public class ReadExcelHeader extends BaseStep {
 					String[] filesrequired = { "N" };
 					boolean[] includesubfolders = { meta.isDynamicIncludeSubFolders() };
 
-					data.files = meta.getDynamicFileList((VariableSpace) data, filesname, filesmask, excludefilesmask, filesrequired,
+					data.files = meta.getDynamicFileList(this, filesname, filesmask, excludefilesmask, filesrequired,
 							includesubfolders);
 					data.filessize = data.files.nrOfFiles();
 					if (meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
