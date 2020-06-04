@@ -27,7 +27,7 @@ public class ReadExcelHeaderData extends BaseStepData {
 	public RowMetaInterface outputRowMeta;
 	public Object[] readrow;
 	public boolean last_file;
-	public long filenr;
+	public int filenr;
 	public FileInputList files;
 	public FileObject file;
 	public RowMetaInterface inputRowMeta;
@@ -35,7 +35,8 @@ public class ReadExcelHeaderData extends BaseStepData {
 	public long rownr;
 	public int indexOfFilenameField;
 	public int indexOfWildcardField;
-  	public int indexOfExcludeWildcardField;
+	public int indexOfExcludeWildcardField;
+	public int filessize;
 
 	public ReadExcelHeaderData() {
 			super();
@@ -45,5 +46,7 @@ public class ReadExcelHeaderData extends BaseStepData {
 			indexOfFilenameField = -1;
 			indexOfWildcardField = -1;
 			indexOfExcludeWildcardField = -1;
+			filessize = 0;
+			filenr = 0;
 		}
 }

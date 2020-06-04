@@ -1016,7 +1016,6 @@ public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogI
 			wFilenameList.optWidth(true);
 		}
 
-		// TODO: check if this is the correct spot, or rather in the if clause above
 		wdoNotFailIfNoFile.setSelection(meta.isdoNotFailIfNoFile());
 
 		wFileField.setSelection(meta.isFileField());

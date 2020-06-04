@@ -332,11 +332,9 @@ public class ReadExcelHeader extends BaseStep {
 
 				} // End if first
 
+				if ( data.filenr >= data.filessize ) {
+
 				String filename = getInputRowMeta().getString(data.readrow, data.indexOfFilenameField);
-				if (log.isDetailed()) {
-					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
-							meta.getFileNameField(), filename));
-				}
 				String wildcard = "";
 				if (data.indexOfWildcardField >= 0) {
 					wildcard = getInputRowMeta().getString(data.readrow, data.indexOfWildcardField);
@@ -344,6 +342,14 @@ public class ReadExcelHeader extends BaseStep {
 				String excludewildcard = "";
 				if (data.indexOfExcludeWildcardField >= 0) {
 					excludewildcard = getInputRowMeta().getString(data.readrow, data.indexOfExcludeWildcardField);
+				}
+				if (log.isDetailed()) {
+					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+							meta.getFileNameField(), filename));
+					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+							meta.getDynamicWildcardField(), wildcard));
+					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+							meta.getDynamicExcludeWildcardField(), excludewildcard));
 				}
 
 				String[] filesname = { filename };
@@ -354,9 +360,17 @@ public class ReadExcelHeader extends BaseStep {
 
 				data.files = meta.getDynamicFileList(this, filesname, filesmask, excludefilesmask, filesrequired,
 						includesubfolders);
-
+				data.filessize = data.files.nrOfFiles();
+				if (meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
+					logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
+					return false;
+				}
+				data.filenr = 0;
+			}
+				
+			if ( data.filessize > 0 ) {
 				// data.filessize = data.files.nrOfFiles();
-				data.file = data.files.getFile( 0 );
+				data.file = data.files.getFile( data.filenr );
 
 				String tempFilename = KettleVFS.getFilename( data.file );
 				data.file = KettleVFS.getFileObject(tempFilename, getTransMeta());
@@ -364,6 +378,7 @@ public class ReadExcelHeader extends BaseStep {
 				// Init Row number
 				if (meta.isFileField()) {
 					data.rownr = 0;
+				}
 				}
 			}
 
