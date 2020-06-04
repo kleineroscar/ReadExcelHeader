@@ -26,7 +26,6 @@ import org.pentaho.di.trans.step.BaseStepData;
 public class ReadExcelHeaderData extends BaseStepData {
 	public RowMetaInterface outputRowMeta;
 	public Object[] readrow;
-	public boolean last_file;
 	public int filenr;
 	public FileInputList files;
 	public FileObject file;

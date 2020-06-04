@@ -38,7 +38,6 @@ import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.util.Utils;
-import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -222,9 +221,10 @@ public class ReadExcelHeader extends BaseStep {
 	}
 
 	private boolean openNextFile() {
-		if (data.last_file) {
-			return false; // Done!
-		}
+		// if ( data.filenr >= data.filessize ) {
+		// 	setOutputDone();
+		// 	return false;
+		// }
 
 		try {
 			if (!meta.isFileField()) {
@@ -252,7 +252,7 @@ public class ReadExcelHeader extends BaseStep {
 
 				}
 
-				if (data.filenr >= data.files.nrOfFiles()) {
+				if (data.filenr >= data.filessize) {
 					// finished processing!
 
 					if (log.isDetailed()) {
@@ -261,12 +261,12 @@ public class ReadExcelHeader extends BaseStep {
 					return false;
 				}
 
-				// Is this the last file?
-				data.last_file = (data.filenr == data.files.nrOfFiles() - 1);
 				data.file = data.files.getFile((int) data.filenr);
 
 			} else {
-				data.readrow = getRow(); // Get row from input rowset & set row busy!
+				if ( data.filenr >= data.filessize ) {
+					data.readrow = getRow(); // Get row from input rowset & set row busy!
+				}
 				if (data.readrow == null) {
 					if (log.isDetailed()) {
 						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
@@ -431,7 +431,6 @@ public class ReadExcelHeader extends BaseStep {
 		logDebug("cleansed filepath is: " + filePath);
 
 		try {
-			// file1InputStream = new URL(filePath).openStream();
 			file1InputStream = new FileInputStream(new File(filePath));
 		} catch (IOException e) {
 			log.logDebug("Supplied file: " + filePath);
