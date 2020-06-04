@@ -38,6 +38,7 @@ import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.util.Utils;
+import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.vfs.KettleVFS;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -332,53 +333,53 @@ public class ReadExcelHeader extends BaseStep {
 
 				} // End if first
 
-				if ( data.filenr >= data.filessize ) {
+				if (data.filenr >= data.filessize) {
 
-				String filename = getInputRowMeta().getString(data.readrow, data.indexOfFilenameField);
-				String wildcard = "";
-				if (data.indexOfWildcardField >= 0) {
-					wildcard = getInputRowMeta().getString(data.readrow, data.indexOfWildcardField);
-				}
-				String excludewildcard = "";
-				if (data.indexOfExcludeWildcardField >= 0) {
-					excludewildcard = getInputRowMeta().getString(data.readrow, data.indexOfExcludeWildcardField);
-				}
-				if (log.isDetailed()) {
-					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
-							meta.getFileNameField(), filename));
-					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
-							meta.getDynamicWildcardField(), wildcard));
-					logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
-							meta.getDynamicExcludeWildcardField(), excludewildcard));
+					String filename = getInputRowMeta().getString(data.readrow, data.indexOfFilenameField);
+					String wildcard = "";
+					if (data.indexOfWildcardField >= 0) {
+						wildcard = getInputRowMeta().getString(data.readrow, data.indexOfWildcardField);
+					}
+					String excludewildcard = "";
+					if (data.indexOfExcludeWildcardField >= 0) {
+						excludewildcard = getInputRowMeta().getString(data.readrow, data.indexOfExcludeWildcardField);
+					}
+					if (log.isDetailed()) {
+						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+								meta.getFileNameField(), filename));
+						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+								meta.getDynamicWildcardField(), wildcard));
+						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+								meta.getDynamicExcludeWildcardField(), excludewildcard));
+					}
+
+					String[] filesname = { filename };
+					String[] filesmask = { wildcard };
+					String[] excludefilesmask = { excludewildcard };
+					String[] filesrequired = { "N" };
+					boolean[] includesubfolders = { meta.isDynamicIncludeSubFolders() };
+
+					data.files = meta.getDynamicFileList((VariableSpace) data, filesname, filesmask, excludefilesmask, filesrequired,
+							includesubfolders);
+					data.filessize = data.files.nrOfFiles();
+					if (meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
+						logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
+						return false;
+					}
+					data.filenr = 0;
 				}
 
-				String[] filesname = { filename };
-				String[] filesmask = { wildcard };
-				String[] excludefilesmask = { excludewildcard };
-				String[] filesrequired = { "N" };
-				boolean[] includesubfolders = { meta.isDynamicIncludeSubFolders() };
+				if (data.filessize > 0) {
+					// data.filessize = data.files.nrOfFiles();
+					data.file = data.files.getFile(data.filenr);
 
-				data.files = meta.getDynamicFileList(this, filesname, filesmask, excludefilesmask, filesrequired,
-						includesubfolders);
-				data.filessize = data.files.nrOfFiles();
-				if (meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
-					logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
-					return false;
-				}
-				data.filenr = 0;
-			}
-				
-			if ( data.filessize > 0 ) {
-				// data.filessize = data.files.nrOfFiles();
-				data.file = data.files.getFile( data.filenr );
+					String tempFilename = KettleVFS.getFilename(data.file);
+					data.file = KettleVFS.getFileObject(tempFilename, getTransMeta());
 
-				String tempFilename = KettleVFS.getFilename( data.file );
-				data.file = KettleVFS.getFileObject(tempFilename, getTransMeta());
-
-				// Init Row number
-				if (meta.isFileField()) {
-					data.rownr = 0;
-				}
+					// Init Row number
+					if (meta.isFileField()) {
+						data.rownr = 0;
+					}
 				}
 			}
 
