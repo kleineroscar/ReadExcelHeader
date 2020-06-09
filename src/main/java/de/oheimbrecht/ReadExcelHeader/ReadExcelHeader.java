@@ -443,7 +443,6 @@ public class ReadExcelHeader extends BaseStep {
 		}
 		if (file1InputStream == null) {
 			log.logDebug("Supplied file: " + filePath);
-			log.logDebug(e.getMessage());
 			throw new KettleStepException("Could not read the file provided.");
 		}
 
