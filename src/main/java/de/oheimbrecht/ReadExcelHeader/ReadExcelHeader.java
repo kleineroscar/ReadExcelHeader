@@ -33,6 +33,7 @@ import org.pentaho.di.core.fileinput.FileInputList;
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -222,8 +223,8 @@ public class ReadExcelHeader extends BaseStep {
 
 	private boolean openNextFile() {
 		// if ( data.filenr >= data.filessize ) {
-		// 	setOutputDone();
-		// 	return false;
+		// setOutputDone();
+		// return false;
 		// }
 
 		try {
@@ -264,7 +265,7 @@ public class ReadExcelHeader extends BaseStep {
 				data.file = data.files.getFile((int) data.filenr);
 
 			} else {
-				if ( data.filenr >= data.filessize ) {
+				if (data.filenr >= data.filessize) {
 					data.readrow = getRow(); // Get row from input rowset & set row busy!
 				}
 				if (data.readrow == null) {
@@ -431,8 +432,16 @@ public class ReadExcelHeader extends BaseStep {
 		logDebug("cleansed filepath is: " + filePath);
 
 		try {
+			file1InputStream = new FileInputStream(new File(KettleVFS.getFileObject(filePath).getName().getPath()));
+		} catch (IOException | KettleFileException e) {
+
+		}
+		try {
 			file1InputStream = new FileInputStream(new File(filePath));
 		} catch (IOException e) {
+			
+		}
+		if (file1InputStream == null) {
 			log.logDebug("Supplied file: " + filePath);
 			log.logDebug(e.getMessage());
 			throw new KettleStepException("Could not read the file provided.");
