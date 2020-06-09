@@ -33,7 +33,6 @@ import org.pentaho.di.core.fileinput.FileInputList;
 import org.apache.poi.xssf.usermodel.*;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleFileException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.RowDataUtil;
@@ -432,27 +431,22 @@ public class ReadExcelHeader extends BaseStep {
 		logDebug("cleansed filepath is: " + filePath);
 
 		try {
-			file1InputStream = new FileInputStream(new File(KettleVFS.getFileObject(filePath).getURL().getFile()));
-		} catch (IOException | KettleFileException e) {
+			// String tempfilename = KettleVFS.getFilename(filePath);
+			workbook1 = new XSSFWorkbook(KettleVFS.getFilename(data.file));
+		} catch (IOException e) {
 			logDebug("Couldn't get file from VFS");
 			logDebug(e.getMessage());
 		}
 		try {
 			file1InputStream = new FileInputStream(new File(filePath));
+			workbook1 = new XSSFWorkbook(file1InputStream);
 		} catch (IOException e) {
 			logDebug("Couldn't get file from local");
 			logDebug(e.getMessage());
 		}
-		if (file1InputStream == null) {
+		if (workbook1 == null) {
 			log.logDebug("Supplied file: " + filePath);
 			throw new KettleStepException("Could not read the file provided.");
-		}
-
-		try {
-			workbook1 = new XSSFWorkbook(file1InputStream);
-		} catch (IOException e) {
-			log.logDebug(e.getMessage());
-			throw new KettleStepException("Could not parse the workbook from the file");
 		}
 
 		for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
