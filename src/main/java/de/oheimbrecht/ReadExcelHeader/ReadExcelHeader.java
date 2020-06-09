@@ -432,14 +432,16 @@ public class ReadExcelHeader extends BaseStep {
 		logDebug("cleansed filepath is: " + filePath);
 
 		try {
-			file1InputStream = new FileInputStream(new File(KettleVFS.getFileObject(filePath).getName().getPath()));
+			file1InputStream = new FileInputStream(new File(KettleVFS.getFileObject(filePath).getURL().getFile()));
 		} catch (IOException | KettleFileException e) {
-
+			logDebug("Couldn't get file from VFS");
+			logDebug(e.getMessage());
 		}
 		try {
 			file1InputStream = new FileInputStream(new File(filePath));
 		} catch (IOException e) {
-			
+			logDebug("Couldn't get file from local");
+			logDebug(e.getMessage());
 		}
 		if (file1InputStream == null) {
 			log.logDebug("Supplied file: " + filePath);
