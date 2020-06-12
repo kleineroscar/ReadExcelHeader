@@ -89,6 +89,7 @@ public class ReadExcelHeader extends BaseStep {
 					logError(Messages.getString("ReadExcelHeaderDialog.Log.NoFiles"));
 					return false;
 				}
+				data.filessize = data.files.nrOfFiles();
 				try {
 					handleMissingFiles();
 					// Create the output row meta-data
@@ -509,7 +510,7 @@ public class ReadExcelHeader extends BaseStep {
 
 				int lastMeta = data.outputRowMeta.size();
 				try {
-					log.logDebug("Processing the next cell with number: " + j);
+					log.logRowlevel("Processing the next cell with number: " + j);
 					outputRow[lastMeta - 5] = (new File(filePath)).getName();
 					log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in "
 							+ String.valueOf(lastMeta - 5));
@@ -531,16 +532,16 @@ public class ReadExcelHeader extends BaseStep {
 				log.logDebug("Startrow is: " + startRow);
 				log.logDebug("Samplerows is: " + sampleRows);
 				for (int k = startRow + 1; k <= sampleRows; k++) {
-					log.logDebug("Going into loop for getting cell info with k= " + k);
+					log.logRowlevel("Going into loop for getting cell info with k= " + k);
 					try {
 						XSSFCell cell = sheet.getRow(k).getCell(row.getCell(j).getColumnIndex());
-						log.logDebug("Adding type and style to list: '" + cell.getCellTypeEnum().toString() + "/"
+						log.logRowlevel("Adding type and style to list: '" + cell.getCellTypeEnum().toString() + "/"
 								+ cell.getCellStyle().getDataFormatString() + "'");
 						cellInfo.put(cell.getCellTypeEnum().toString() + cell.getCellStyle().getDataFormatString(),
 								new String[] { cell.getCellTypeEnum().toString(),
 										cell.getCellStyle().getDataFormatString() });
 					} catch (Exception e) {
-						log.logDebug("Couldn't get Field info in row " + String.valueOf(k));
+						log.logRowlevel("Couldn't get Field info in row " + String.valueOf(k));
 					}
 				}
 				if (cellInfo.size() == 0) {
@@ -556,7 +557,7 @@ public class ReadExcelHeader extends BaseStep {
 				}
 
 				// put the row to the output row stream
-				log.logDebug(
+				log.logRowlevel(
 						"Created the following row: " + Arrays.toString(outputRow) + " ;map size=" + cellInfo.size());
 				putRow(data.outputRowMeta, outputRow);
 			}
