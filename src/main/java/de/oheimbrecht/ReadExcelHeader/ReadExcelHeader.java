@@ -440,12 +440,12 @@ public class ReadExcelHeader extends BaseStep {
 				logDebug("Local file");
 				String localFilename = KettleVFS.getFilename(fileObject);
 				File excelFile = new File(localFilename);
-				InputStream fileInputStream = new FileInputStream(excelFile);
-				workbook1 = new XSSFWorkbook(fileInputStream);
+				file1InputStream = new FileInputStream(excelFile);
+				workbook1 = new XSSFWorkbook(file1InputStream);
 			} else {
 				logDebug("VFS file");
-				InputStream fileInputStream = KettleVFS.getInputStream(KettleVFS.getFilename(data.file));
-				workbook1 = new XSSFWorkbook(fileInputStream);
+				file1InputStream = KettleVFS.getInputStream(KettleVFS.getFilename(data.file));
+				workbook1 = new XSSFWorkbook(file1InputStream);
 			}
 			logDebug("successfully read file");
 			
