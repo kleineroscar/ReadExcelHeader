@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.provider.local.LocalFile;
 import org.pentaho.di.core.fileinput.FileInputList;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -432,18 +433,28 @@ public class ReadExcelHeader extends BaseStep {
 
 		try {
 			// String tempfilename = KettleVFS.getFilename(filePath);
-			workbook1 = new XSSFWorkbook(KettleVFS.getFilename(data.file));
-		} catch (IOException e) {
-			logDebug("Couldn't get file from VFS");
+			FileObject fileObject = KettleVFS.getFileObject(KettleVFS.getFilename(data.file));
+			logDebug("created fileobject from file");
+			if (fileObject instanceof LocalFile) {
+				//This might reduce memory usage
+				logDebug("Local file");
+				String localFilename = KettleVFS.getFilename(fileObject);
+				File excelFile = new File(localFilename);
+				InputStream fileInputStream = new FileInputStream(excelFile);
+				workbook1 = new XSSFWorkbook(fileInputStream);
+			} else {
+				logDebug("VFS file");
+				InputStream fileInputStream = KettleVFS.getInputStream(KettleVFS.getFilename(data.file));
+				workbook1 = new XSSFWorkbook(fileInputStream);
+			}
+			logDebug("successfully read file");
+			
+		} catch (Exception e) {
+			logDebug("Couldn't get file");
 			logDebug(e.getMessage());
+			throw new KettleStepException("Couldn't read file provided");
 		}
-		try {
-			file1InputStream = new FileInputStream(new File(filePath));
-			workbook1 = new XSSFWorkbook(file1InputStream);
-		} catch (IOException e) {
-			logDebug("Couldn't get file from local");
-			logDebug(e.getMessage());
-		}
+
 		if (workbook1 == null) {
 			log.logDebug("Supplied file: " + filePath);
 			throw new KettleStepException("Could not read the file provided.");
@@ -556,10 +567,10 @@ public class ReadExcelHeader extends BaseStep {
 		}
 		try {
 			workbook1.close();
-			// file1InputStream.close();
 		} catch (Exception e) {
 			new KettleException("Could not dispose workbook.\n" + e.getMessage());
 		}
+
 		try {
 			file1InputStream.close();
 		} catch (IOException e) {
