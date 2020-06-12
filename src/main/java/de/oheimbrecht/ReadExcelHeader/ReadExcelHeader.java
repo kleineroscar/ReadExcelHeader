@@ -143,7 +143,6 @@ public class ReadExcelHeader extends BaseStep {
 			r = outputRowData;
 
 			logDebug("Is file field used? " + (meta.isFileField() ? "Yes" : "No"));
-			logDebug("data.file is: " + data.file.toString());
 			filePath = data.file.toString();
 
 			getHeader(r);
@@ -428,14 +427,12 @@ public class ReadExcelHeader extends BaseStep {
 	}
 
 	private void getHeader(Object[] r) throws KettleStepException {
-		log.logDebug("Filepath is: " + filePath);
 		filePath = (filePath.contains("file://") ? filePath.substring(7) : filePath);
 		logDebug("cleansed filepath is: " + filePath);
 
 		try {
 			// String tempfilename = KettleVFS.getFilename(filePath);
 			FileObject fileObject = KettleVFS.getFileObject(KettleVFS.getFilename(data.file));
-			logDebug("created fileobject from file");
 			if (fileObject instanceof LocalFile) {
 				//This might reduce memory usage
 				logDebug("Local file");
@@ -529,8 +526,8 @@ public class ReadExcelHeader extends BaseStep {
 				}
 
 				Map<String, String[]> cellInfo = new HashMap<>();
-				log.logDebug("Startrow is: " + startRow);
-				log.logDebug("Samplerows is: " + sampleRows);
+				log.logRowlevel("Startrow is: " + startRow);
+				log.logRowlevel("Samplerows is: " + sampleRows);
 				for (int k = startRow + 1; k <= sampleRows; k++) {
 					log.logRowlevel("Going into loop for getting cell info with k= " + k);
 					try {
