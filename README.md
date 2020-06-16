@@ -4,7 +4,7 @@ This Pentaho Data-Integration (PDI) step provides you with the column names and 
 This fixes the problem of not knowing the structure of an excel file before reading/having to validate the structure.
 We can use this information in combination with a Metadata Injection (MDI) step and dynamically read an excel file, regardless of it's structure.
 
-Tested in PDI 8.3 - 9.0
+Tested in PDI 9.0
 
 How to build
 --------------
