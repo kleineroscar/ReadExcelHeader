@@ -508,22 +508,37 @@ public class ReadExcelHeader extends BaseStep {
 				int lastMeta = data.outputRowMeta.size();
 				try {
 					log.logRowlevel("Processing the next cell with number: " + j);
-					outputRow[lastMeta - 5] = (new File(filePath)).getName();
+					outputRow[lastMeta - 5] = data.file;
 					log.logRowlevel("Got workbook name: " + outputRow[lastMeta - 5] + " setting in "
 							+ String.valueOf(lastMeta - 5));
-					outputRow[lastMeta - 4] = workbook1.getSheetName(i);
-					log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in "
-							+ String.valueOf(lastMeta - 4));
-					outputRow[lastMeta - 3] = row.getCell(j).toString();
-					log.logRowlevel("Got cell header: " + outputRow[lastMeta - 3] + " setting in "
-							+ String.valueOf(lastMeta - 3));
 				} catch (Exception e) {
-					log.logError("Some error while getting the values. With Sheetnumber:" + String.valueOf(i)
-							+ " and Column number:" + String.valueOf(j));
+					log.logError("Some error while getting the file string" + data.file);
 
 					log.logError(e.getMessage());
 					throw new KettleStepException(e.getMessage());
 				}
+				try {
+					outputRow[lastMeta - 4] = workbook1.getSheetName(i);
+					log.logRowlevel("Got sheet name: " + outputRow[lastMeta - 4] + " setting in "
+							+ String.valueOf(lastMeta - 4));
+				} catch (Exception e) {
+					log.logError("Some error while getting the values. With Sheetnumber:" + String.valueOf(i));
+
+					log.logError(e.getMessage());
+					throw new KettleStepException(e.getMessage());
+				}
+				try{
+					outputRow[lastMeta - 3] = row.getCell(j).toString();
+					log.logRowlevel("Got cell header: " + outputRow[lastMeta - 3] + " setting in "
+							+ String.valueOf(lastMeta - 3));
+				} catch (Exception e) {
+					log.logDebug("Some error while getting the values. With Sheetnumber:" + String.valueOf(i)
+							+ " and Column number:" + String.valueOf(j));
+					outputRow[lastMeta - 3] = "NO DATA";
+					// log.logError(e.getMessage());
+					// throw new KettleStepException(e.getMessage());
+				}
+
 
 				Map<String, String[]> cellInfo = new HashMap<>();
 				log.logRowlevel("Startrow is: " + startRow);
