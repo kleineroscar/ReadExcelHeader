@@ -17,7 +17,7 @@ jobs:
       with:
         java-version: 1.8
     - name: Build with Maven
-      run: mvn -B package --file pom.xml
+      run: mvn -s pentaho-settings.xml -P central -B package --file pom.xml
       
   release:
     name: Create Release
@@ -31,8 +31,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ GITHUB_RUN_ID }}
+          release_name: Release ${{ GITHUB_RUN_ID }}
           draft: false
           prerelease: false
       - name: Upload a Release Asset
