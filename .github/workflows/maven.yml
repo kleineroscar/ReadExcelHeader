@@ -21,7 +21,7 @@ jobs:
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@master
       with:
-       name: ReadExcelHeader.zip
+       name: ReadExcelHeader
        path: ./target/ReadExcelHeader-*.zip
       
   release:
@@ -34,8 +34,8 @@ jobs:
       - name: Download a Build Artifact
         uses: actions/download-artifact@master
         with:
-          name: ReadExcelHeader.zip
-          path: ./ReadExcelHeader-*.zip
+          name: ReadExcelHeader
+          path: ./
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
