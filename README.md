@@ -1,6 +1,6 @@
 # ReadExcelHeader
 
-This Pentaho Data-Integration (PDI) step provides you with the column names and types from a excel file.
+This Pentaho Data-Integration (PDI) step provides you with the column names and types from an excel file.
 This fixes the problem of not knowing the structure of an excel file before reading/having to validate the structure.
 We can use this information in combination with a Metadata Injection (MDI) step and dynamically read an excel file, regardless of it's structure.
 
