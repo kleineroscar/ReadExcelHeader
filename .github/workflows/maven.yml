@@ -18,6 +18,11 @@ jobs:
         java-version: 1.8
     - name: Build with Maven
       run: mvn -s pentaho-settings.xml -P central -B package --file pom.xml
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@master
+      with:
+       name: ReadExcelHeader.zip
+       path: ./target/ReadExcelHeader-*.zip
       
   release:
     name: Create Release
@@ -26,6 +31,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@master
+        with:
+          name: ReadExcelHeader.zip
+          path: ./ReadExcelHeader-*.zip
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -42,6 +52,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./target/ReadExcelHeader-*.zip
+          asset_path: ./ReadExcelHeader-*.zip
           asset_name: ReadExcelHeader.zip
           asset_content_type: application/zip
