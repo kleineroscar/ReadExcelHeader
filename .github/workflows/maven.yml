@@ -21,6 +21,7 @@ jobs:
       
   release:
     name: Create Release
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
