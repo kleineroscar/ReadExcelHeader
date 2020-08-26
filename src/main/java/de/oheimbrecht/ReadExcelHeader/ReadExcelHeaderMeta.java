@@ -244,7 +244,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		// the name of the step that adds this field
 		vWorkbook.setOrigin(name);
 
-		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_NONE);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vWorkbook);
@@ -255,7 +255,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		// the name of the step that adds this field
 		vSheet.setOrigin(name);
 
-		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_NONE);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vSheet);
@@ -266,7 +266,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		// the name of the step that adds this field
 		vColumnName.setOrigin(name);
 
-		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_NONE);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnName);
@@ -277,7 +277,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		// the name of the step that adds this field
 		vColumnType.setOrigin(name);
 
-		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_NONE);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnType);
@@ -288,7 +288,7 @@ public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterfa
 		// the name of the step that adds this field
 		vColumnDataFormat.setOrigin(name);
 
-		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
+		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_NONE);
 
 		// modify the row structure and add the field this step generates
 		inputRowMeta.addValueMeta(vColumnDataFormat);

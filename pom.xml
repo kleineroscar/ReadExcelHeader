@@ -1,16 +1,18 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <groupId>org.pentaho</groupId>
-    <artifactId>pentaho-ce-jar-parent-pom</artifactId>
-    <version>9.1.0.0-SNAPSHOT</version>
-  </parent>
-  <groupId>de.oheimbrecht</groupId>
-  <artifactId>ReadExcelHeader</artifactId>
-  <version>1.2.3</version>
-  <name>Read Excel Header</name>
-  <description>Pentaho Step plugin for reading the header from an excel file</description>
- <developers>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.pentaho</groupId>
+		<artifactId>pentaho-ce-jar-parent-pom</artifactId>
+		<version>9.1.0.0-SNAPSHOT</version>
+	</parent>
+	<groupId>de.oheimbrecht</groupId>
+	<artifactId>ReadExcelHeader</artifactId>
+	<version>1.2.4</version>
+	<name>Read Excel Header</name>
+	<description>Pentaho Step plugin for reading the header from an excel file</description>
+	<developers>
 		<developer>
 			<name>Oscar Heimbrecht</name>
 			<email>github@oheimbrecht.de</email>
@@ -19,10 +21,10 @@
 			</roles>
 		</developer>
 	</developers>
-	
+
 	<properties>
 		<license.licenseName>apache_v2</license.licenseName>
-		
+
 		<pdi.version>9.0.0.0-SNAPSHOT</pdi.version>
 		<pdi.home>/Volumes/SD/Programme/data-integration-9.0</pdi.home>
 
@@ -34,19 +36,20 @@
 		<commons-lang.version>2.6</commons-lang.version>
 		<commons-vfs2.version>2.1-20150824</commons-vfs2.version>
 	</properties>
-	
-<build>
+
+	<build>
 		<pluginManagement>
 			<plugins>
-				<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
-    		<plugin>
-    			<groupId>org.eclipse.m2e</groupId>
-    			<artifactId>lifecycle-mapping</artifactId>
-    			<version>1.0.0</version>
-    			<configuration>
-    				<lifecycleMappingMetadata>
-    					<pluginExecutions>
-    						<pluginExecution>
+				<!--This plugin's configuration is used to store Eclipse m2e settings 
+					only. It has no influence on the Maven build itself. -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
 									<pluginExecutionFilter>
 										<groupId>org.jacoco</groupId>
 										<artifactId>
@@ -62,48 +65,48 @@
 									<action>
 										<ignore />
 									</action>
-							</pluginExecution>
-    						<pluginExecution>
-    							<pluginExecutionFilter>
-    								<groupId>
-    									org.pentaho.maven.plugins
-    								</groupId>
-    								<artifactId>
-    									license-helper-maven-plugin
-    								</artifactId>
-    								<versionRange>[1.27,)</versionRange>
-    								<goals>
-    									<goal>bundle</goal>
-    									<goal>check-license</goal>
-    								</goals>
-    							</pluginExecutionFilter>
-    							<action>
-    								<ignore></ignore>
-    							</action>
-    						</pluginExecution>
-    						<pluginExecution>
-    							<pluginExecutionFilter>
-    								<groupId>
-    									com.soebes.maven.plugins
-    								</groupId>
-    								<artifactId>
-    									iterator-maven-plugin
-    								</artifactId>
-    								<versionRange>
-    									[0.5.1,)
-    								</versionRange>
-    								<goals>
-    									<goal>iterator</goal>
-    								</goals>
-    							</pluginExecutionFilter>
-    							<action>
-    								<ignore></ignore>
-    							</action>
-    						</pluginExecution>
-    					</pluginExecutions>
-    				</lifecycleMappingMetadata>
-    			</configuration>
-    		</plugin>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											org.pentaho.maven.plugins
+										</groupId>
+										<artifactId>
+											license-helper-maven-plugin
+										</artifactId>
+										<versionRange>[1.27,)</versionRange>
+										<goals>
+											<goal>bundle</goal>
+											<goal>check-license</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>
+											com.soebes.maven.plugins
+										</groupId>
+										<artifactId>
+											iterator-maven-plugin
+										</artifactId>
+										<versionRange>
+											[0.5.1,)
+										</versionRange>
+										<goals>
+											<goal>iterator</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<ignore></ignore>
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 		<plugins>
@@ -191,15 +194,17 @@
 									message="Installed the plugin in PDI installation in ${pdi.home}. To test, please restart Spoon." />
 
 								<!-- remove previous installations -->
-								<delete dir="${pdi.home}/plugins/steps/${project.artifactId}" />
-								
+								<!--<delete dir="${pdi.home}/plugins/steps/${project.artifactId}" 
+									/> -->
+
 
 								<!-- put fresh files in place -->
- 								<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" /> -->
-								
- 								<unzip
- 									src="${project.build.directory}/${project.artifactId}-${project.version}.zip"
- 									 dest="${pdi.home}/plugins/steps/" />
+								<!--<mkdir dir="${pdi.home}/plugins/steps/${project.artifactId}" 
+									/> -->
+
+								<!--<unzip -->
+								<!-- src="${project.build.directory}/${project.artifactId}-${project.version}.zip" -->
+								<!-- dest="${pdi.home}/plugins/steps/" /> -->
 							</target>
 						</configuration>
 					</execution>
@@ -211,14 +216,14 @@
 
 	<dependencies>
 		<dependency>
-    		<groupId>org.apache.poi</groupId>
-    		<artifactId>poi</artifactId>
-    		<version>3.17</version>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>3.17</version>
 		</dependency>
 		<dependency>
-    		<groupId>org.apache.poi</groupId>
-    		<artifactId>poi-ooxml</artifactId>
-    		<version>3.17</version>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>3.17</version>
 		</dependency>
 		<dependency>
 			<groupId>pentaho-kettle</groupId>

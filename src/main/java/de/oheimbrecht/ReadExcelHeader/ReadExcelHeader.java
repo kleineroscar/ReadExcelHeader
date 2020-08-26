@@ -543,7 +543,7 @@ public class ReadExcelHeader extends BaseStep {
 				Map<String, String[]> cellInfo = new HashMap<>();
 				log.logRowlevel("Startrow is: " + startRow);
 				log.logRowlevel("Samplerows is: " + sampleRows);
-				for (int k = startRow + 1; k <= sampleRows; k++) {
+				for (int k = startRow + 1; k <= startRow + sampleRows; k++) {
 					log.logRowlevel("Going into loop for getting cell info with k= " + k);
 					try {
 						XSSFCell cell = sheet.getRow(k).getCell(row.getCell(j).getColumnIndex());
