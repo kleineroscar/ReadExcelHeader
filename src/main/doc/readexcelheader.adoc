@@ -1,0 +1,35 @@
+:documentationPath: /plugins/transforms/
+:language: en_US
+:page-alternativeEditUrl: https://github.com/kleineroscar/readexcelheader/edit/hop/src/main/doc/readexcelheader.adoc
+= Read Excel Header
+
+== Description
+
+The Read Excel Header transform allows you to get the column names and types from a excel file.
+We can use this information in combination with a Metadata Injection (MDI) step and dynamically read an excel file, regardless of it's structure.
+
+The output fields for this transform are:
+
+* fields of incoming step (only if the option of reading a field is selected)
+* workbookName
+* sheetName
+* columnName
+* columnType
+* columnDataFormat
+
+== File tab
+
+This tab defines the location of the files you want to retrieve filenames for. For more information about specifying file locations, see section "Selecting file using Regular Expressions" on the Text File Input transform.
+
+Example: You have a static directory of c:\temp where you expect files with an extension of .dat to be placed. Under file/directory you would specify c:\temp  and under Wildcard you would have a RegEx with something like .*\.dat$
+
+
+== Content
+
+The content tab allows you to define special constraints for the execution.
+
+* The start row option allows you to specify from which row the excel file should be read. This is useful if the excel file contains some additional headers that you do not want.
+
+* To receive the column data type we sample a specified number of rows. Some columns may contain only empty rows on the first couple rows. Raising this value should increase the reliability on the received value. if multiple data types are found "MIXED" is returned. These columns should be read as string the parsed later with the help of a select values step.
+
+* You can also specify the handling if no files are found. If no headers are found no error is thrown.

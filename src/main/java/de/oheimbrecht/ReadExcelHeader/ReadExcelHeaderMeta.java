@@ -18,735 +18,699 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
+import org.apache.commons.vfs2.FileObject;
+import org.apache.hop.core.CheckResult;
+import org.apache.hop.core.ICheckResult;
+import org.apache.hop.core.Const;
+import org.apache.hop.core.annotations.Transform;
+import org.apache.hop.core.exception.HopException;
+import org.apache.hop.core.exception.HopTransformException;
+import org.apache.hop.core.exception.HopXmlException;
+import org.apache.hop.core.fileinput.FileInputList;
+import org.apache.hop.core.row.IRowMeta;
+import org.apache.hop.core.row.IValueMeta;
+import org.apache.hop.core.row.value.ValueMetaBoolean;
+import org.apache.hop.core.row.value.ValueMetaDate;
+import org.apache.hop.core.row.value.ValueMetaInteger;
+import org.apache.hop.core.row.value.ValueMetaString;
+import org.apache.hop.core.util.Utils;
+import org.apache.hop.core.variables.IVariables;
+import org.apache.hop.core.vfs.HopVfs;
+import org.apache.hop.core.xml.XmlHandler;
+import org.apache.hop.i18n.BaseMessages;
+import org.apache.hop.metadata.api.IHopMetadataProvider;
+import org.apache.hop.pipeline.Pipeline;
+import org.apache.hop.pipeline.PipelineMeta;
+import org.apache.hop.resource.ResourceDefinition;
+import org.apache.hop.resource.ResourceEntry;
+import org.apache.hop.resource.ResourceEntry.ResourceType;
+import org.apache.hop.resource.IResourceNaming;
+import org.apache.hop.resource.ResourceReference;
+import org.apache.hop.pipeline.transform.*;
+import org.w3c.dom.Node;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.swt.widgets.Shell;
-import org.pentaho.di.core.CheckResult;
-import org.pentaho.di.core.CheckResultInterface;
-import org.pentaho.di.core.Const;
-import org.pentaho.di.core.Counter;
-import org.pentaho.di.core.annotations.Step;
-import org.pentaho.di.core.database.DatabaseMeta;
-import org.pentaho.di.core.exception.KettleDatabaseException;
-import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.exception.KettleXMLException;
-import org.pentaho.di.core.fileinput.FileInputList;
-import org.pentaho.di.core.injection.Injection;
-import org.pentaho.di.core.injection.InjectionSupported;
-import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.ValueMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaString;
-import org.pentaho.di.core.variables.VariableSpace;
-import org.pentaho.di.core.xml.XMLHandler;
-import org.pentaho.di.repository.ObjectId;
-import org.pentaho.di.repository.Repository;
-import org.pentaho.di.trans.Trans;
-import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.BaseStepMeta;
-import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.di.trans.step.StepInterface;
-import org.pentaho.di.trans.step.StepMeta;
-import org.pentaho.di.trans.step.StepMetaInterface;
-import org.pentaho.metastore.api.IMetaStore;
-import org.w3c.dom.Node;
-
-@Step(id = "ReadExcelHeader", image = "REH.svg", i18nPackageName = "de.oheimbrecht.ReadExcelHeader", name = "ReadExcelHeader.Step.Name", description = "ReadExcelHeader.Step.Description", categoryDescription = "i18n:org.pentaho.di.trans.step:BaseStep.Category.Utility", documentationUrl = "https://github.com/kleineroscar/ReadExcelHeader")
-
-@InjectionSupported(localizationPrefix = "ReadExcelHeader.Injection.")
-public class ReadExcelHeaderMeta extends BaseStepMeta implements StepMetaInterface {
-	/** Field to read from */
-	@Injection(name = "FIELD_OF_FILENAMES")
-	private String filenameField;
-	@Injection(name = "ROW_TO_START_ON")
-	private String startRow;
-	@Injection(name = "NUMBER_OF_ROWS_TO_SAMPLE")
-	private String sampleRows;
-
-	private String startRowFieldName;
-
-	private boolean filefield;
-	private boolean startrowfield;
-
-	private String dynamicWildcardField;
-	private String dynamicExcludeWildcardField;
-	private boolean dynamicIncludeSubFolders;
-	/** Flag : do not fail if no file */
-	private boolean doNotFailIfNoFile;
-
-	public static final String[] RequiredFilesDesc = new String[] { Messages.getString("System.Combo.No"),
-			Messages.getString("System.Combo.Yes") };
-	public static final String[] RequiredFilesCode = new String[] { "N", "Y" };
-	private static final String NO = "N";
-	private static final String YES = "Y";
-
-	/** Array of filenames */
-	private String[] fileName;
-
-	/** Wildcard or filemask (regular expression) */
-	private String[] fileMask;
-
-	/** Wildcard or filemask to exclude (regular expression) */
-	private String[] excludeFileMask;
-
-	/** Flag indicating that a row number field should be included in the output */
-	private boolean includeFilesCount;
-
-	/** Array of boolean values as string, indicating if a file is required. */
-	private String[] fileRequired;
-
-	/**
-	 * Array of boolean values as string, indicating if we need to fetch sub
-	 * folders.
-	 */
-	private String[] includeSubFolders;
-
-	public ReadExcelHeaderMeta() {
-		super();
-	}
-
-	/**
-	 * Called by Spoon to get a new instance of the SWT dialog for the step. A
-	 * standard implementation passing the arguments to the constructor of the step
-	 * dialog is recommended.
-	 * 
-	 * @param shell     an SWT Shell
-	 * @param meta      description of the step
-	 * @param transMeta description of the the transformation
-	 * @param name      the name of the step
-	 * @return new instance of a dialog for this step
-	 */
-	public StepDialogInterface getDialog(Shell shell, StepMetaInterface meta, TransMeta transMeta, String name) {
-		return new ReadExcelHeaderDialog(shell, meta, transMeta, name);
-	}
-
-	/**
-	 * Called by PDI to get a new instance of the step implementation. A standard
-	 * implementation passing the arguments to the constructor of the step class is
-	 * recommended.
-	 * 
-	 * @param stepMeta          description of the step
-	 * @param stepDataInterface instance of a step data class
-	 * @param cnr               copy number
-	 * @param transMeta         description of the transformation
-	 * @param disp              runtime implementation of the transformation
-	 * @return the new instance of a step implementation
-	 */
-	public StepInterface getStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int cnr, TransMeta transMeta,
-			Trans disp) {
-		return new ReadExcelHeader(stepMeta, stepDataInterface, cnr, transMeta, disp);
-	}
-
-	/**
-	 * Called by PDI to get a new instance of the step data class.
-	 */
-	public StepDataInterface getStepData() {
-		return new ReadExcelHeaderData();
-	}
-
-	/**
-	 * This method is called every time a new step is created and should
-	 * allocate/set the step configuration to sensible defaults. The values set here
-	 * will be used by Spoon when a new step is created.
-	 */
-	public void setDefault() {
-		filenameField = "";
-		startRowFieldName = "";
-		startRow = "0";
-		sampleRows = "10";
-		filefield = false;
-		startrowfield = false;
-		dynamicWildcardField = "";
-		dynamicIncludeSubFolders = false;
-		dynamicExcludeWildcardField = "";
-		doNotFailIfNoFile = false;
-
-		int nrFiles = 0;
-
-		allocate(nrFiles);
-
-		for (int i = 0; i < nrFiles; i++) {
-			fileName[i] = "filename" + (i + 1);
-			fileMask[i] = "";
-			excludeFileMask[i] = "";
-			fileRequired[i] = RequiredFilesCode[0];
-			includeSubFolders[i] = RequiredFilesCode[0];
-		}
-	}
-
-	// @Override
-	// public boolean excludeFromCopyDistributeVerification()
-	// {
-	// return true;
-	// }
-
-	/**
-	 * This method is used when a step is duplicated in Spoon. It needs to return a
-	 * deep copy of this step meta object. Be sure to create proper deep copies if
-	 * the step configuration is stored in modifiable objects.
-	 * 
-	 * See org.pentaho.di.trans.steps.rowgenerator.RowGeneratorMeta.clone() for an
-	 * example on creating a deep copy.
-	 * 
-	 * @return a deep copy of this
-	 */
-	public Object clone() {
-		ReadExcelHeaderMeta retval = (ReadExcelHeaderMeta) super.clone();
-		retval.filenameField = filenameField;
-		retval.startRowFieldName = startRowFieldName;
-		retval.startRow = startRow;
-		retval.sampleRows = sampleRows;
-
-		int nrFiles = fileName.length;
-
-		retval.allocate(nrFiles);
-		System.arraycopy(fileName, 0, retval.fileName, 0, nrFiles);
-		System.arraycopy(fileMask, 0, retval.fileMask, 0, nrFiles);
-		System.arraycopy(excludeFileMask, 0, retval.excludeFileMask, 0, nrFiles);
-		System.arraycopy(fileRequired, 0, retval.fileRequired, 0, nrFiles);
-		System.arraycopy(includeSubFolders, 0, retval.includeSubFolders, 0, nrFiles);
-
-		return retval;
-	}
-
-	// For compatibility with 7.x
-	@Override
-	public String getDialogClassName() {
-		return ReadExcelHeaderDialog.class.getName();
-	}
-
-	/**
-	 * This method is called to determine the changes the step is making to the
-	 * row-stream. To that end a RowMetaInterface object is passed in, containing
-	 * the row-stream structure as it is when entering the step. This method must
-	 * apply any changes the step makes to the row stream. Usually a step adds
-	 * fields to the row-stream.
-	 * 
-	 * @param inputRowMeta the row structure coming in to the step
-	 * @param name         the name of the step making the changes
-	 * @param info         row structures of any info steps coming in
-	 * @param nextStep     the description of a step this step is passing rows to
-	 * @param space        the variable space for resolving variables
-	 * @param repository   the repository instance optionally read from
-	 * @param metaStore    the metaStore to optionally read from
-	 */
-	public void getFields(RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep,
-			VariableSpace space, Repository repository, IMetaStore metaStore) throws KettleStepException {
-
-		/*
-		 * This implementation appends the outputField to the row-stream
-		 */
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vWorkbook = new ValueMetaString("workbookName", 500, -1);
-
-		// the name of the step that adds this field
-		vWorkbook.setOrigin(name);
-
-		vWorkbook.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vWorkbook);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vSheet = new ValueMetaString("sheetName", 500, -1);
-
-		// the name of the step that adds this field
-		vSheet.setOrigin(name);
-
-		vSheet.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vSheet);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnName = new ValueMetaString("columnName", 500, -1);
-
-		// the name of the step that adds this field
-		vColumnName.setOrigin(name);
-
-		vColumnName.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnName);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnType = new ValueMetaString("columnType", 500, -1);
-
-		// the name of the step that adds this field
-		vColumnType.setOrigin(name);
-
-		vColumnType.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnType);
-
-		// a value meta object contains the meta data for a field
-		ValueMetaInterface vColumnDataFormat = new ValueMetaString("columnDataFormat", 500, -1);
-
-		// the name of the step that adds this field
-		vColumnDataFormat.setOrigin(name);
-
-		vColumnDataFormat.setTrimType(ValueMetaInterface.TRIM_TYPE_BOTH);
-
-		// modify the row structure and add the field this step generates
-		inputRowMeta.addValueMeta(vColumnDataFormat);
-	}
-
-	public FileInputList getFiles(VariableSpace space) {
-		return FileInputList.createFileList(space, fileName, fileMask, excludeFileMask, fileRequired,
-				includeSubFolderBoolean());
-	}
-
-	public FileInputList getDynamicFileList(VariableSpace space, String[] filename, String[] filemask,
-			String[] excludefilemask, String[] filerequired, boolean[] includesubfolders) {
-		return FileInputList.createFileList(space, filename, filemask, excludefilemask, filerequired,
-				includesubfolders);
-	}
-
-	private boolean[] includeSubFolderBoolean() {
-		int len = fileName.length;
-		boolean[] includeSubFolderBoolean = new boolean[len];
-		for (int i = 0; i < len; i++) {
-			includeSubFolderBoolean[i] = YES.equalsIgnoreCase(includeSubFolders[i]);
-		}
-		return includeSubFolderBoolean;
-	}
-
-	/**
-	 * This method is called when the user selects the "Verify Transformation"
-	 * option in Spoon. A list of remarks is passed in that this method should add
-	 * to. Each remark is a comment, warning, error, or ok. The method should
-	 * perform as many checks as necessary to catch design-time errors.
-	 * 
-	 * Typical checks include: - verify that all mandatory configuration is given -
-	 * verify that the step receives any input, unless it's a row generating step -
-	 * verify that the step does not receive any input if it does not take them into
-	 * account - verify that the step finds fields it relies on in the row-stream
-	 * 
-	 * @param remarks   the list of remarks to append to
-	 * @param transMeta the description of the transformation
-	 * @param stepMeta  the description of the step
-	 * @param prev      the structure of the incoming row-stream
-	 * @param input     names of steps sending input to the step
-	 * @param output    names of steps this step is sending output to
-	 * @param info      fields coming in from info steps
-	 * @param metaStore metaStore to optionally read from
-	 */
-	public void check(List<CheckResultInterface> remarks, TransMeta transMeta, StepMeta stepMeta, RowMetaInterface prev,
-			String[] input, String[] output, RowMetaInterface info, VariableSpace space, Repository repository,
-			IMetaStore metaStore) {
-		CheckResult cr;
-
-		if (prev == null || prev.size() == 0) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_WARNING, "Not receiving any fields from previous steps!",
-					stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK,
-					"Step is connected to previous one, receiving " + prev.size() + " fields", stepMeta);
-			remarks.add(cr);
-		}
-
-		// See if we have input streams leading to this step!
-		if (input.length > 0) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step is receiving info from other steps.", stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No input received from other steps!", stepMeta);
-			remarks.add(cr);
-		}
-
-		if (!filenameField.isEmpty()) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a filename.", stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No filename received!", stepMeta);
-			remarks.add(cr);
-		}
-
-		if (!startRow.isEmpty() && !startrowfield) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
-			remarks.add(cr);
-		}
-
-		if (!startRowFieldName.isEmpty() && startrowfield) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a field with a row to start on.", stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row field received!", stepMeta);
-			remarks.add(cr);
-		}
-
-		if (!sampleRows.isEmpty()) {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received number of rows to sample on.", stepMeta);
-			remarks.add(cr);
-		} else {
-			cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No number of sample rows received!", stepMeta);
-			remarks.add(cr);
-		}
-	}
-
-	public String getFilenameField() {
-		return filenameField;
-	}
-
-	public void setFilenameField(final String filenameField) {
-		this.filenameField = filenameField;
-	}
-
-	public String getStartRowFieldName() {
-		return startRowFieldName;
-	}
-
-	public void setStartRowFieldName(final String startRowFieldName) {
-		this.startRowFieldName = startRowFieldName;
-	}
-
-	public String getStartRow() {
-		return startRow;
-	}
-
-	public void setStartRow(final String StartRow) {
-		this.startRow = StartRow;
-	}
-
-	public String getSampleRows() {
-		return sampleRows;
-	}
-
-	public void setSampleRows(String sampleRows) {
-		this.sampleRows = sampleRows;
-	}
-
-	public String getXML() {
-		StringBuilder retval = new StringBuilder(500);
-		retval.append("   " + XMLHandler.addTagValue("filenamefield", filenameField));
-		retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
-		retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
-		retval.append("    ").append(XMLHandler.addTagValue("filefield", filefield));
-		retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
-		retval.append("    ").append(XMLHandler.addTagValue("startrowfieldname", startRowFieldName));
-		retval.append("    ").append(XMLHandler.addTagValue("wildcard_Field", dynamicWildcardField));
-		retval.append("    ").append(XMLHandler.addTagValue("exclude_wildcard_Field", dynamicExcludeWildcardField));
-		retval.append("    ").append(XMLHandler.addTagValue("dynamic_include_subfolders", dynamicIncludeSubFolders));
-		retval.append("    ").append(XMLHandler.addTagValue("doNotFailIfNoFile", doNotFailIfNoFile));
-
-		retval.append("    <file>").append(Const.CR);
-		for (int i = 0; i < fileName.length; i++) {
-			retval.append("      ").append(XMLHandler.addTagValue("name", fileName[i]));
-			retval.append("      ").append(XMLHandler.addTagValue("filemask", fileMask[i]));
-			retval.append("      ").append(XMLHandler.addTagValue("exclude_filemask", excludeFileMask[i]));
-			retval.append("      ").append(XMLHandler.addTagValue("file_required", fileRequired[i]));
-			retval.append("      ").append(XMLHandler.addTagValue("include_subfolders", includeSubFolders[i]));
-			parentStepMeta.getParentTransMeta().getNamedClusterEmbedManager().registerUrl(fileName[i]);
-		}
-		retval.append("    </file>").append(Const.CR);
-
-		return retval.toString();
-	}
-
-	public void loadXML(Node stepnode, List<DatabaseMeta> databases, Map<String, Counter> counters)
-			throws KettleXMLException {
-		try {
-			filenameField = XMLHandler.getTagValue(stepnode, "filenamefield");
-			startRow = XMLHandler.getTagValue(stepnode, "startrow");
-			sampleRows = XMLHandler.getTagValue(stepnode, "sampleRows");
-
-			filefield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "filefield"));
-			startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
-			startRowFieldName = XMLHandler.getTagValue(stepnode, "startrowfieldname");
-
-			dynamicWildcardField = XMLHandler.getTagValue(stepnode, "wildcard_Field");
-			dynamicExcludeWildcardField = XMLHandler.getTagValue(stepnode, "exclude_wildcard_Field");
-			dynamicIncludeSubFolders = "Y"
-					.equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "dynamic_include_subfolders"));
-			doNotFailIfNoFile = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "doNotFailIfNoFile"));
-
-			Node filenode = XMLHandler.getSubNode(stepnode, "file");
-			int nrFiles = XMLHandler.countNodes(filenode, "name");
-			allocate(nrFiles);
-
-			for (int i = 0; i < nrFiles; i++) {
-				Node filenamenode = XMLHandler.getSubNodeByNr(filenode, "name", i);
-				Node filemasknode = XMLHandler.getSubNodeByNr(filenode, "filemask", i);
-				Node excludefilemasknode = XMLHandler.getSubNodeByNr(filenode, "exclude_filemask", i);
-				Node fileRequirednode = XMLHandler.getSubNodeByNr(filenode, "file_required", i);
-				Node includeSubFoldersnode = XMLHandler.getSubNodeByNr(filenode, "include_subfolders", i);
-				fileName[i] = XMLHandler.getNodeValue(filenamenode);
-				fileMask[i] = XMLHandler.getNodeValue(filemasknode);
-				excludeFileMask[i] = XMLHandler.getNodeValue(excludefilemasknode);
-				fileRequired[i] = XMLHandler.getNodeValue(fileRequirednode);
-				includeSubFolders[i] = XMLHandler.getNodeValue(includeSubFoldersnode);
-			}
-		} catch (Exception e) {
-			throw new KettleXMLException("Unable to read step info from XML node", e);
-		}
-	}
-
-	public void readRep(Repository rep, ObjectId id_step, List<DatabaseMeta> databases, Map<String, Counter> counters)
-			throws KettleException {
-		try {
-			filenameField = rep.getStepAttributeString(id_step, "filenamefield");
-			startRow = rep.getStepAttributeString(id_step, "startrow");
-			sampleRows = rep.getStepAttributeString(id_step, "sampleRows");
-
-			filefield = rep.getStepAttributeBoolean(id_step, "filefield");
-			startrowfield = rep.getStepAttributeBoolean(id_step, "startrowfield");
-			startRowFieldName = rep.getStepAttributeString(id_step, "startrowfieldname");
-			doNotFailIfNoFile = rep.getStepAttributeBoolean(id_step, "doNotFailIfNoFile");
-			dynamicWildcardField = rep.getStepAttributeString(id_step, "wildcard_Field");
-			dynamicExcludeWildcardField = rep.getStepAttributeString(id_step, "exclude_wildcard_Field");
-			dynamicIncludeSubFolders = rep.getStepAttributeBoolean(id_step, "dynamic_include_subfolders");
-
-			int nrFiles = rep.countNrStepAttributes(id_step, "file_name");
-
-			allocate(nrFiles);
-
-			for (int i = 0; i < nrFiles; i++) {
-				fileName[i] = rep.getStepAttributeString(id_step, i, "file_name");
-				fileMask[i] = rep.getStepAttributeString(id_step, i, "file_mask");
-				excludeFileMask[i] = rep.getStepAttributeString(id_step, i, "exclude_file_mask");
-				fileRequired[i] = rep.getStepAttributeString(id_step, i, "file_required");
-				if (!YES.equalsIgnoreCase(fileRequired[i])) {
-					fileRequired[i] = NO;
-				}
-				includeSubFolders[i] = rep.getStepAttributeString(id_step, i, "include_subfolders");
-				if (!YES.equalsIgnoreCase(includeSubFolders[i])) {
-					includeSubFolders[i] = NO;
-				}
-			}
-		} catch (KettleDatabaseException dbe) {
-			throw new KettleException("error reading step with id_step=" + id_step + " from the repository", dbe);
-		} catch (Exception e) {
-			throw new KettleException("Unexpected error reading step with id_step=" + id_step + " from the repository",
-					e);
-		}
-	}
-
-	public void saveRep(Repository rep, ObjectId id_transformation, ObjectId id_step) throws KettleException {
-		try {
-			rep.saveStepAttribute(id_transformation, id_step, "filenamefield", filenameField);
-			rep.saveStepAttribute(id_transformation, id_step, "startrow", startRow);
-			rep.saveStepAttribute(id_transformation, id_step, "sampleRows", sampleRows);
-			rep.saveStepAttribute(id_transformation, id_step, "filefield", filefield);
-			rep.saveStepAttribute(id_transformation, id_step, "startrowfield", startrowfield);
-			rep.saveStepAttribute(id_transformation, id_step, "startrowfieldname", startRowFieldName);
-			rep.saveStepAttribute(id_transformation, id_step, "wildcard_Field", dynamicWildcardField);
-			rep.saveStepAttribute(id_transformation, id_step, "exclude_wildcard_Field", dynamicExcludeWildcardField);
-			rep.saveStepAttribute(id_transformation, id_step, "dynamic_include_subfolders", dynamicIncludeSubFolders);
-			rep.saveStepAttribute(id_transformation, id_step, "doNotFailIfNoFile", doNotFailIfNoFile);
-
-			for (int i = 0; i < fileName.length; i++) {
-				rep.saveStepAttribute(id_transformation, id_step, i, "file_name", fileName[i]);
-				rep.saveStepAttribute(id_transformation, id_step, i, "file_mask", fileMask[i]);
-				rep.saveStepAttribute(id_transformation, id_step, i, "exclude_file_mask", excludeFileMask[i]);
-				rep.saveStepAttribute(id_transformation, id_step, i, "file_required", fileRequired[i]);
-				rep.saveStepAttribute(id_transformation, id_step, i, "include_subfolders", includeSubFolders[i]);
-			}
-		} catch (KettleDatabaseException dbe) {
-			throw new KettleException("Unable to save step information to the repository, id_step=" + id_step, dbe);
-		}
-	}
-
-	public void allocate(int nrfiles) {
-		fileName = new String[nrfiles];
-		fileMask = new String[nrfiles];
-		excludeFileMask = new String[nrfiles];
-		fileRequired = new String[nrfiles];
-		includeSubFolders = new String[nrfiles];
-	}
-
-	/**
-	 * @return Returns the excludeFileMask.
-	 */
-	public String[] getExcludeFileMask() {
-		return excludeFileMask;
-	}
-
-	/**
-	 * @param excludeFileMask The excludeFileMask to set.
-	 */
-	public void setExcludeFileMask(String[] excludeFileMask) {
-		this.excludeFileMask = excludeFileMask;
-	}
-
-	/**
-	 * @return Returns the output filename_Field.
-	 */
-	public String getFileNameField() {
-		return filenameField;
-	}
-
-	/**
-	 * @param filenameField The output filename_field to set.
-	 */
-	public void setFileNameField(String filenameField) {
-		this.filenameField = filenameField;
-	}
-
-	/**
-	 * @return Returns the fileMask.
-	 */
-	public String[] getFileMask() {
-		return fileMask;
-	}
-
-	public void setFileRequired(String[] fileRequiredin) {
-		this.fileRequired = new String[fileRequiredin.length];
-		for (int i = 0; i < fileRequiredin.length; i++) {
-			this.fileRequired[i] = getRequiredFilesCode(fileRequiredin[i]);
-		}
-	}
-
-	public String[] getIncludeSubFolders() {
-		return includeSubFolders;
-	}
-
-	public void setIncludeSubFolders(String[] includeSubFoldersin) {
-		this.includeSubFolders = new String[includeSubFoldersin.length];
-		for (int i = 0; i < includeSubFoldersin.length; i++) {
-			this.includeSubFolders[i] = getRequiredFilesCode(includeSubFoldersin[i]);
-		}
-	}
-
-	public String getRequiredFilesCode(String tt) {
-		if (tt == null) {
-			return RequiredFilesCode[0];
-		}
-		if (tt.equals(RequiredFilesDesc[1])) {
-			return RequiredFilesCode[1];
-		} else {
-			return RequiredFilesCode[0];
-		}
-	}
-
-	public String getRequiredFilesDesc(String tt) {
-		if (tt == null) {
-			return RequiredFilesDesc[0];
-		}
-		if (tt.equals(RequiredFilesCode[1])) {
-			return RequiredFilesDesc[1];
-		} else {
-			return RequiredFilesDesc[0];
-		}
-	}
-
-	/**
-	 * @param fileMask The fileMask to set.
-	 */
-	public void setFileMask(String[] fileMask) {
-		this.fileMask = fileMask;
-	}
-
-	/**
-	 * @return Returns the fileName.
-	 */
-	public String[] getFileName() {
-		return fileName;
-	}
-
-	/**
-	 * @param fileName The fileName to set.
-	 */
-	public void setFileName(String[] fileName) {
-		this.fileName = fileName;
-	}
-
-	/**
-	 * @return Returns the includeCountFiles.
-	 */
-	public boolean includeCountFiles() {
-		return includeFilesCount;
-	}
-
-	/**
-	 * @param includeFilesCount The "includes files count" flag to set.
-	 */
-	public void setIncludeCountFiles(boolean includeFilesCount) {
-		this.includeFilesCount = includeFilesCount;
-	}
-
-	public String[] getFileRequired() {
-		return this.fileRequired;
-	}
-
-	/**
-	 * @return Returns the File field.
-	 */
-	public boolean isFileField() {
-		return filefield;
-	}
-
-	/**
-	 * @param filefield The file field to set.
-	 */
-	public void setFileField(boolean filefield) {
-		this.filefield = filefield;
-	}
-
-	/**
-	 * @return Returns the start row field.
-	 */
-	public boolean isStartRowField() {
-		return startrowfield;
-	}
-
-	/**
-	 * @param startrowfield The start row field to set.
-	 */
-	public void setStartRowField(boolean startrowfield) {
-		this.startrowfield = startrowfield;
-	}
-
-	/**
-	 * @return the doNotFailIfNoFile flag
-	 */
-	public boolean isdoNotFailIfNoFile() {
-		return doNotFailIfNoFile;
-	}
-
-	/**
-	 * @param doNotFailIfNoFile the doNotFailIfNoFile to set
-	 */
-	public void setdoNotFailIfNoFile(boolean doNotFailIfNoFile) {
-		this.doNotFailIfNoFile = doNotFailIfNoFile;
-	}
-
-	/**
-	 * @param dynamicWildcardField The dynamic wildcard field to set.
-	 */
-	public void setDynamicWildcardField(String dynamicWildcardField) {
-		this.dynamicWildcardField = dynamicWildcardField;
-	}
-
-	/**
-	 * @return Returns the dynamic wildcard field (from previous steps)
-	 */
-	public String getDynamicWildcardField() {
-		return dynamicWildcardField;
-	}
-
-	public String getDynamicExcludeWildcardField() {
-		return this.dynamicExcludeWildcardField;
-	}
-
-	/**
-	 * @param excludeWildcard The dynamic excludeWildcard field to set.
-	 */
-	public void setDynamicExcludeWildcardField(String dynamicExcludeWildcardField) {
-		this.dynamicExcludeWildcardField = dynamicExcludeWildcardField;
-	}
-
-	public boolean isDynamicIncludeSubFolders() {
-		return dynamicIncludeSubFolders;
-	}
-
-	public void setDynamicIncludeSubFolders(boolean dynamicIncludeSubFolders) {
-		this.dynamicIncludeSubFolders = dynamicIncludeSubFolders;
-	}
+@Transform(
+        id = "ReadExcelHeader",
+        image = "REH.svg",
+        i18nPackageName = "i18n:de.oheimbrecht.ReadExcelHeader",
+        name = "BaseTransform.TypeLongDesc.ReadExcelHeader",
+        description = "BaseTransform.TypeTooltipDesc.ReadExcelHeader",
+        categoryDescription = "i18n:org.apache.hop.pipeline.transform:BaseTransform.Category.Input",
+        documentationUrl = "https://github.com/kleineroscar/ReadExcelHeader"
+)
+public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransformMeta<ReadExcelHeader, ReadExcelHeaderData> {
+  private static Class<?> PKG = ReadExcelHeaderMeta.class; // for i18n purposes, needed by Translator!!
+
+  public static final String[] RequiredFilesDesc = new String[] {
+    BaseMessages.getString( PKG, "System.Combo.No" ), BaseMessages.getString( PKG, "System.Combo.Yes" ) };
+  public static final String[] RequiredFilesCode = new String[] { "N", "Y" };
+
+  private static final String NO = "N";
+
+  private static final String YES = "Y";
+
+  /**
+   * Array of filenames
+   */
+  private String[] fileName;
+
+  /**
+   * Wildcard or filemask (regular expression)
+   */
+  private String[] fileMask;
+
+  /**
+   * Wildcard or filemask to exclude (regular expression)
+   */
+  private String[] excludeFileMask;
+
+  /**
+   * Array of boolean values as string, indicating if a file is required.
+   */
+  private String[] fileRequired;
+
+  /**
+   * Array of boolean values as string, indicating if we need to fetch sub folders.
+   */
+  private String[] includeSubFolders;
+
+  /**
+   * The name of the field in the output containing the filename
+   */
+  private String filenameField;
+
+  /**
+   * Flag indicating that a field should be used for the start row
+   */
+  private boolean startrowfield;
+
+  /**
+   * The name of the field in the output containing the start row
+   */
+  private String startRowFieldName;
+
+  /**
+   * The start row value
+   */
+  private int startRow;
+  
+
+  /**
+   * How many rows to sample
+   */
+  private int sampleRows;
+
+  private String dynamicFilenameField;
+
+  private String dynamicWildcardField;
+  private String dynamicExcludeWildcardField;
+
+  /**
+   * file name from previous fields
+   **/
+  private boolean filefield;
+
+  private boolean dynamicIncludeSubFolders;
+
+  /**
+   * Flag : do not fail if no file
+   */
+  private boolean doNotFailIfNoFile;
+
+  public ReadExcelHeaderMeta() {
+    super(); // allocate BaseTransformMeta
+  }
+
+  /**
+   * @return the doNotFailIfNoFile flag
+   */
+  public boolean isdoNotFailIfNoFile() {
+    return doNotFailIfNoFile;
+  }
+
+  /**
+   * @param doNotFailIfNoFile the doNotFailIfNoFile to set
+   */
+  public void setdoNotFailIfNoFile( boolean doNotFailIfNoFile ) {
+    this.doNotFailIfNoFile = doNotFailIfNoFile;
+  }
+
+  /**
+   * @return Returns the filenameField.
+   */
+  public String getFilenameField() {
+    return filenameField;
+  }
+
+  /**
+   * @param dynamicFilenameField The dynamic filename field to set.
+   */
+  public void setDynamicFilenameField( String dynamicFilenameField ) {
+    this.dynamicFilenameField = dynamicFilenameField;
+  }
+
+  /**
+   * @param dynamicWildcardField The dynamic wildcard field to set.
+   */
+  public void setDynamicWildcardField( String dynamicWildcardField ) {
+    this.dynamicWildcardField = dynamicWildcardField;
+  }
+
+  /**
+   * @return Returns the dynamic filename field (from previous transforms)
+   */
+  public String getDynamicFilenameField() {
+    return dynamicFilenameField;
+  }
+
+  /**
+   * @return Returns the dynamic wildcard field (from previous transforms)
+   */
+  public String getDynamicWildcardField() {
+    return dynamicWildcardField;
+  }
+
+  public String getDynamicExcludeWildcardField() {
+    return this.dynamicExcludeWildcardField;
+  }
+
+  /**
+   * @param dynamicExcludeWildcardField The dynamic excludeWildcard field to set.
+   */
+  public void setDynamicExcludeWildcardField( String dynamicExcludeWildcardField ) {
+    this.dynamicExcludeWildcardField = dynamicExcludeWildcardField;
+  }
+
+
+  /**
+   * @return Returns the File field.
+   */
+  public boolean isFileField() {
+    return filefield;
+  }
+
+  /**
+   * @param filefield The filefield to set.
+   */
+  public void setFileField( boolean filefield ) {
+    this.filefield = filefield;
+  }
+
+  public boolean isDynamicIncludeSubFolders() {
+    return dynamicIncludeSubFolders;
+  }
+
+  public void setDynamicIncludeSubFolders( boolean dynamicIncludeSubFolders ) {
+    this.dynamicIncludeSubFolders = dynamicIncludeSubFolders;
+  }
+
+  /**
+   * @return Returns the fileMask.
+   */
+  public String[] getFileMask() {
+    return fileMask;
+  }
+
+  /**
+   * @return Returns the fileRequired.
+   */
+  public String[] getFileRequired() {
+    return fileRequired;
+  }
+
+  /**
+   * @param fileMask The fileMask to set.
+   */
+  public void setFileMask( String[] fileMask ) {
+    this.fileMask = fileMask;
+  }
+
+  /**
+   * @param excludeFileMask The excludeFileMask to set.
+   */
+  public void setExcludeFileMask( String[] excludeFileMask ) {
+    this.excludeFileMask = excludeFileMask;
+  }
+
+  /**
+   * @return Returns the excludeFileMask.
+   * Deprecated due to typo
+   */
+  @Deprecated
+  public String[] getExludeFileMask() {
+    return excludeFileMask;
+  }
+
+  /**
+   * @return Returns the excludeFileMask.
+   */
+  public String[] getExcludeFileMask() {
+    return excludeFileMask;
+  }
+
+  /**
+   * @param fileRequiredin The fileRequired to set.
+   */
+  public void setFileRequired( String[] fileRequiredin ) {
+    this.fileRequired = new String[ fileRequiredin.length ];
+    for ( int i = 0; i < fileRequiredin.length; i++ ) {
+      this.fileRequired[ i ] = getRequiredFilesCode( fileRequiredin[ i ] );
+    }
+  }
+
+  /**
+   * @return Returns the fileName.
+   */
+  public String[] getFileName() {
+    return fileName;
+  }
+
+  /**
+   * @param fileName The fileName to set.
+   */
+  public void setFileName( String[] fileName ) {
+    this.fileName = fileName;
+  }
+
+  /**
+   * @return Returns if a field is used for startRow.
+   */
+  public boolean isStartRowField() {
+      return startrowfield;
+  }
+
+  /**
+   * @param startrowfield The startrowfield to set.
+   */
+  public void setStartRowField( boolean startrowfield ) {
+      this.startrowfield = startrowfield;
+  }
+
+  /**
+   * @return Returns the start row field name.
+   */
+  public String getStartRowFieldName() {
+      return startRowFieldName;
+  }
+
+  /**
+   * @param startRowFieldName The startRowFieldName to set.
+   */
+  public void setStarRowFieldName( String startRowFieldName ) {
+      this.startRowFieldName = startRowFieldName;
+  }
+
+  /**
+   * @return Returns the start row if the entry is manual.
+   */
+  public int getStartRow() {
+      return startRow;
+  }
+
+  /**
+   * @param startRow The startRow to set.
+   */
+  public void setStartRow(int startRow) {
+      this.startRow = startRow;
+  }  
+
+  /**
+   * @return Returns the number of sample rows.
+   */
+  public int getSampleRows() {
+      return sampleRows;
+  }
+
+  /**
+   * @param sampleRows The fileName to set.
+   */
+  public void setSampleRows(int sampleRows) {
+      this.sampleRows = sampleRows;
+  }
+
+  public String getRequiredFilesDesc( String tt ) {
+    if ( tt == null ) {
+      return RequiredFilesDesc[ 0 ];
+    }
+    if ( tt.equals( RequiredFilesCode[ 1 ] ) ) {
+      return RequiredFilesDesc[ 1 ];
+    } else {
+      return RequiredFilesDesc[ 0 ];
+    }
+  }
+
+  public void setIncludeSubFolders( String[] includeSubFoldersin ) {
+    this.includeSubFolders = new String[ includeSubFoldersin.length ];
+    for ( int i = 0; i < includeSubFoldersin.length; i++ ) {
+      this.includeSubFolders[ i ] = getRequiredFilesCode( includeSubFoldersin[ i ] );
+    }
+  }
+
+  public String getRequiredFilesCode( String tt ) {
+    if ( tt == null ) {
+      return RequiredFilesCode[ 0 ];
+    }
+    if ( tt.equals( RequiredFilesDesc[ 1 ] ) ) {
+      return RequiredFilesCode[ 1 ];
+    } else {
+      return RequiredFilesCode[ 0 ];
+    }
+  }
+
+  @Override
+  public void loadXml( Node transformNode, IHopMetadataProvider metadataProvider ) throws HopXmlException {
+    readData( transformNode );
+  }
+
+  @Override
+  public Object clone() {
+    ReadExcelHeaderMeta retval = (ReadExcelHeaderMeta) super.clone();
+
+    int nrfiles = fileName.length;
+
+    retval.allocate( nrfiles );
+
+    System.arraycopy( fileName, 0, retval.fileName, 0, nrfiles );
+    System.arraycopy( fileMask, 0, retval.fileMask, 0, nrfiles );
+    System.arraycopy( excludeFileMask, 0, retval.excludeFileMask, 0, nrfiles );
+    System.arraycopy( fileRequired, 0, retval.fileRequired, 0, nrfiles );
+    System.arraycopy( includeSubFolders, 0, retval.includeSubFolders, 0, nrfiles );
+
+    return retval;
+  }
+
+  public void allocate( int nrfiles ) {
+    fileName = new String[ nrfiles ];
+    fileMask = new String[ nrfiles ];
+    excludeFileMask = new String[ nrfiles ];
+    fileRequired = new String[ nrfiles ];
+    includeSubFolders = new String[ nrfiles ];
+  }
+
+  @Override
+  public void setDefault() {
+    int nrfiles = 0;
+    doNotFailIfNoFile = false;
+    filefield = false;
+    dynamicFilenameField = "";
+    dynamicWildcardField = "";
+    dynamicIncludeSubFolders = false;
+    dynamicExcludeWildcardField = "";
+
+    sampleRows = 10;
+    startrowfield = false;
+    startRowFieldName = "";
+    startRow = 0;
+
+    allocate( nrfiles );
+
+    for ( int i = 0; i < nrfiles; i++ ) {
+      fileName[ i ] = "filename" + ( i + 1 );
+      fileMask[ i ] = "";
+      excludeFileMask[ i ] = "";
+      fileRequired[ i ] = NO;
+      includeSubFolders[ i ] = NO;
+    }
+  }
+
+  @Override
+  public void getFields( IRowMeta row, String name, IRowMeta[] info, TransformMeta nextTransform,
+                         IVariables variables, IHopMetadataProvider metadataProvider ) throws HopTransformException {
+
+    // the workbookName
+    IValueMeta workbookName = new ValueMetaString( "workbookName" );
+    workbookName.setLength( 500 );
+    workbookName.setPrecision( -1 );
+    workbookName.setOrigin( name );
+    row.addValueMeta( workbookName );
+
+    // the sheetName
+    IValueMeta sheetName = new ValueMetaString( "sheetName" );
+    sheetName.setLength( 500 );
+    sheetName.setPrecision( -1 );
+    sheetName.setOrigin( name );
+    row.addValueMeta( sheetName );
+
+    // the columnName
+    IValueMeta columnName = new ValueMetaString( "columnName" );
+    columnName.setLength( 500 );
+    columnName.setPrecision( -1 );
+    columnName.setOrigin( name );
+    row.addValueMeta( columnName );
+
+    // the columnType
+    IValueMeta columnType = new ValueMetaString( "columnType" );
+    columnType.setLength( 500 );
+    columnType.setPrecision( -1 );
+    columnType.setOrigin( name );
+    row.addValueMeta( columnType );
+
+    // the columnDataFormat
+    IValueMeta columnDataFormat = new ValueMetaString( "columnDataFormat" );
+    columnDataFormat.setLength( 500 );
+    columnDataFormat.setPrecision( -1 );
+    columnDataFormat.setOrigin( name );
+    row.addValueMeta( columnDataFormat );
+  }
+
+  @Override
+  public String getXml() {
+    StringBuilder retval = new StringBuilder( 300 );
+
+    retval.append( "    " ).append( XmlHandler.addTagValue( "doNotFailIfNoFile", doNotFailIfNoFile ) );
+    retval.append( "    " ).append( XmlHandler.addTagValue( "filefield", filefield ) );
+    retval.append( "    " ).append( XmlHandler.addTagValue( "filename_Field", dynamicFilenameField ) );
+    retval.append( "    " ).append( XmlHandler.addTagValue( "wildcard_Field", dynamicWildcardField ) );
+    retval
+      .append( "    " ).append( XmlHandler.addTagValue( "exclude_wildcard_Field", dynamicExcludeWildcardField ) );
+    retval.append( "    " ).append(
+      XmlHandler.addTagValue( "dynamic_include_subfolders", dynamicIncludeSubFolders ) );
+    retval.append( "    <file>" ).append( Const.CR );
+
+    for ( int i = 0; i < fileName.length; i++ ) {
+      retval.append( "      " ).append( XmlHandler.addTagValue( "name", fileName[ i ] ) );
+      retval.append( "      " ).append( XmlHandler.addTagValue( "filemask", fileMask[ i ] ) );
+      retval.append( "      " ).append( XmlHandler.addTagValue( "exclude_filemask", excludeFileMask[ i ] ) );
+      retval.append( "      " ).append( XmlHandler.addTagValue( "file_required", fileRequired[ i ] ) );
+      retval.append( "      " ).append( XmlHandler.addTagValue( "include_subfolders", includeSubFolders[ i ] ) );
+    }
+    retval.append( "    </file>" ).append( Const.CR );
+
+    retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
+    retval.append("    ").append(XMLHandler.addTagValue("startrowfieldname", startRowFieldName));
+    retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
+    retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
+    return retval.toString();
+  }
+
+  private void readData( Node transformNode ) throws HopXmlException {
+    try {
+      doNotFailIfNoFile = "Y".equalsIgnoreCase( XmlHandler.getTagValue( transformNode, "doNotFailIfNoFile" ) );
+      filefield = "Y".equalsIgnoreCase( XmlHandler.getTagValue( transformNode, "filefield" ) );
+      dynamicFilenameField = XmlHandler.getTagValue( transformNode, "filename_Field" );
+      dynamicWildcardField = XmlHandler.getTagValue( transformNode, "wildcard_Field" );
+      dynamicExcludeWildcardField = XmlHandler.getTagValue( transformNode, "exclude_wildcard_Field" );
+      dynamicIncludeSubFolders =
+        "Y".equalsIgnoreCase( XmlHandler.getTagValue( transformNode, "dynamic_include_subfolders" ) );
+
+      Node filenode = XmlHandler.getSubNode( transformNode, "file" );
+      int nrfiles = XmlHandler.countNodes( filenode, "name" );
+
+      allocate( nrfiles );
+
+      for ( int i = 0; i < nrfiles; i++ ) {
+        Node filenamenode = XmlHandler.getSubNodeByNr( filenode, "name", i );
+        Node filemasknode = XmlHandler.getSubNodeByNr( filenode, "filemask", i );
+        Node excludefilemasknode = XmlHandler.getSubNodeByNr( filenode, "exclude_filemask", i );
+        Node fileRequirednode = XmlHandler.getSubNodeByNr( filenode, "file_required", i );
+        Node includeSubFoldersnode = XmlHandler.getSubNodeByNr( filenode, "include_subfolders", i );
+        fileName[ i ] = XmlHandler.getNodeValue( filenamenode );
+        fileMask[ i ] = XmlHandler.getNodeValue( filemasknode );
+        excludeFileMask[ i ] = XmlHandler.getNodeValue( excludefilemasknode );
+        fileRequired[ i ] = XmlHandler.getNodeValue( fileRequirednode );
+        includeSubFolders[ i ] = XmlHandler.getNodeValue( includeSubFoldersnode );
+      }
+
+      startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
+      startRowFieldName = XMLHandler.getTagValue(stepnode, "startrowfieldname");
+      startRow = Integer.parseInt(XMLHandler.getTagValue(stepnode, "startrow"));
+      sampleRows = Integer.parseInt(XMLHandler.getTagValue(stepnode, "sampleRows"));
+    } catch ( Exception e ) {
+      throw new HopXmlException( "Unable to load transform info from XML", e );
+    }
+  }
+
+  private boolean[] includeSubFolderBoolean() {
+    int len = fileName.length;
+    boolean[] includeSubFolderBoolean = new boolean[ len ];
+    for ( int i = 0; i < len; i++ ) {
+      includeSubFolderBoolean[ i ] = YES.equalsIgnoreCase( includeSubFolders[ i ] );
+    }
+    return includeSubFolderBoolean;
+  }
+
+  public String[] getIncludeSubFolders() {
+    return includeSubFolders;
+  }
+
+  public String[] getFilePaths( IVariables variables ) {
+    return FileInputList.createFilePathList(
+      variables, fileName, fileMask, excludeFileMask, fileRequired, includeSubFolderBoolean() );
+  }
+
+  public FileInputList getFileList( IVariables variables ) {
+    return FileInputList.createFileList(
+      variables, fileName, fileMask, excludeFileMask, fileRequired, includeSubFolderBoolean() );
+  }
+
+  public FileInputList getDynamicFileList( IVariables variables, String[] filename, String[] filemask,
+                                           String[] excludefilemask, String[] filerequired, boolean[] includesubfolders ) {
+    return FileInputList.createFileList(
+      variables, filename, filemask, excludefilemask, filerequired, includesubfolders );
+  }
+
+  @Override
+  public void check( List<ICheckResult> remarks, PipelineMeta pipelineMeta, TransformMeta transformMeta,
+                     IRowMeta prev, String[] input, String[] output, IRowMeta info, IVariables variables,
+                     IHopMetadataProvider metadataProvider ) {
+    CheckResult cr;
+
+    // See if we get input...
+    if ( filefield ) {
+      if ( input.length > 0 ) {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_OK, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.InputOk" ), transformMeta );
+      } else {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_ERROR, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.InputErrorKo" ), transformMeta );
+      }
+      remarks.add( cr );
+
+      if ( Utils.isEmpty( dynamicFilenameField ) ) {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_ERROR, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.FolderFieldnameMissing" ), transformMeta );
+      } else {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_OK, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.FolderFieldnameOk" ), transformMeta );
+      }
+      remarks.add( cr );
+
+    } else {
+
+      if ( input.length > 0 ) {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_ERROR, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.NoInputError" ), transformMeta );
+      } else {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_OK, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.NoInputOk" ), transformMeta );
+      }
+
+      remarks.add( cr );
+
+      // check specified file names
+      FileInputList fileList = getFileList( pipelineMeta );
+      if ( fileList.nrOfFiles() == 0 ) {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_ERROR, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.ExpectedFilesError" ), transformMeta );
+      } else {
+        cr =
+          new CheckResult( ICheckResult.TYPE_RESULT_OK, BaseMessages.getString(
+            PKG, "ReadExcelHeaderMeta.CheckResult.ExpectedFilesOk", "" + fileList.nrOfFiles() ), transformMeta );
+      }
+      remarks.add( cr );
+    }
+
+    if ( startrowfield) {
+        if (!startRowFieldName.isEmpty()) {
+            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a field with a row to start on.", stepMeta);
+            remarks.add(cr);
+        } else {
+            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row field received!", stepMeta);
+            remarks.add(cr);
+        }
+    } else {
+        if (!startRow.isEmpty()) {
+            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", stepMeta);
+            remarks.add(cr);
+        } else {
+            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
+            remarks.add(cr);
+        }
+    }
+
+    if (!sampleRows.isEmpty()) {
+        cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received number of rows to sample on.", stepMeta);
+        remarks.add(cr);
+    } else {
+        cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No number of sample rows received!", stepMeta);
+        remarks.add(cr);
+    }
+  }
+
+  @Override
+  public List<ResourceReference> getResourceDependencies( PipelineMeta pipelineMeta, TransformMeta transformInfo ) {
+    List<ResourceReference> references = new ArrayList<ResourceReference>( 5 );
+    ResourceReference reference = new ResourceReference( transformInfo );
+    references.add( reference );
+
+    String[] files = getFilePaths( pipelineMeta );
+    if ( files != null ) {
+      for ( int i = 0; i < files.length; i++ ) {
+        reference.getEntries().add( new ResourceEntry( files[ i ], ResourceType.FILE ) );
+      }
+    }
+    return references;
+  }
+
+  @Override
+  public ReadExcelHeader createTransform( TransformMeta transformMeta, ReadExcelHeaderData data, int cnr,
+                                       PipelineMeta pipelineMeta, Pipeline pipeline ) {
+    return new ReadExcelHeader( transformMeta, this, data, cnr, pipelineMeta, pipeline );
+  }
+
+  @Override
+  public ReadExcelHeaderData getTransformData() {
+    return new ReadExcelHeaderData();
+  }
+
+  /**
+   * @param variables                   the variable space to use
+   * @param definitions
+   * @param iResourceNaming
+   * @param metadataProvider               the metadataProvider in which non-hop metadata could reside.
+   * @return the filename of the exported resource
+   */
+  @Override
+  public String exportResources( IVariables variables, Map<String, ResourceDefinition> definitions,
+                                 IResourceNaming iResourceNaming, IHopMetadataProvider metadataProvider ) throws HopException {
+    try {
+      // The object that we're modifying here is a copy of the original!
+      // So let's change the filename from relative to absolute by grabbing the file object...
+      // In case the name of the file comes from previous transforms, forget about this!
+      //
+      if ( !filefield ) {
+
+        // Replace the filename ONLY (folder or filename)
+        //
+        for ( int i = 0; i < fileName.length; i++ ) {
+          FileObject fileObject = HopVfs.getFileObject( variables.environmentSubstitute( fileName[ i ] ) );
+          fileName[ i ] = iResourceNaming.nameResource( fileObject, variables, Utils.isEmpty( fileMask[ i ] ) );
+        }
+      }
+      return null;
+    } catch ( Exception e ) {
+      throw new HopException( e );
+    }
+  }
 }

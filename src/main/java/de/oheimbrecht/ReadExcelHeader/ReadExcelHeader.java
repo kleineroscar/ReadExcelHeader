@@ -18,36 +18,32 @@
  */
 package de.oheimbrecht.ReadExcelHeader;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.provider.local.LocalFile;
-import org.pentaho.di.core.fileinput.FileInputList;
+import org.apache.commons.vfs2.FileType;
+import org.apache.hop.core.Const;
+import org.apache.hop.core.ResultFile;
+import org.apache.hop.core.exception.HopException;
+import org.apache.hop.core.exception.HopTransformException;
+import org.apache.hop.core.fileinput.FileInputList;
+import org.apache.hop.core.row.RowDataUtil;
+import org.apache.hop.core.row.RowMeta;
+import org.apache.hop.core.util.Utils;
+import org.apache.hop.core.vfs.HopVfs;
+import org.apache.hop.i18n.BaseMessages;
+import org.apache.hop.pipeline.Pipeline;
+import org.apache.hop.pipeline.PipelineMeta;
+import org.apache.hop.pipeline.transform.BaseTransform;
+import org.apache.hop.pipeline.transform.ITransform;
+import org.apache.hop.pipeline.transform.TransformMeta;
+
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 
 import org.apache.poi.xssf.usermodel.*;
-import org.pentaho.di.core.Const;
-import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleStepException;
-import org.pentaho.di.core.exception.KettleValueException;
-import org.pentaho.di.core.row.RowDataUtil;
-import org.pentaho.di.core.row.RowMeta;
-import org.pentaho.di.core.util.Utils;
-import org.pentaho.di.core.vfs.KettleVFS;
-import org.pentaho.di.trans.Trans;
-import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.BaseStep;
-import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.di.trans.step.StepMeta;
-import org.pentaho.di.trans.step.StepMetaInterface;
 
 public class ReadExcelHeader extends BaseStep {
+	private static Class<?> PKG = ReadExcelHeader.class; // for i18n purposes, needed by Translator!!
 
 	private int startRow;
 	private int sampleRows;
@@ -86,7 +82,7 @@ public class ReadExcelHeader extends BaseStep {
 				data.files = meta.getFiles(this);
 
 				if (data.files == null || data.files.nrOfFiles() == 0) {
-					logError(Messages.getString("ReadExcelHeaderDialog.Log.NoFiles"));
+					logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoFiles"));
 					return false;
 				}
 				data.filessize = data.files.nrOfFiles();
@@ -151,7 +147,7 @@ public class ReadExcelHeader extends BaseStep {
 
 		} catch (KettleException e) {
 
-			logError(Messages.getString("ReadExcelHeaderDialog.ErrorInStepRunning", e.getMessage()));
+			logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.ErrorInStepRunning", e.getMessage()));
 			setErrors(1);
 			stopAll();
 			setOutputDone(); // signal end to receiver(s)
@@ -195,9 +191,9 @@ public class ReadExcelHeader extends BaseStep {
 				indexOfStartRowField = data.inputRowMeta.indexOfValue(meta.getStartRowFieldName());
 				if (indexOfStartRowField < 0) {
 					// The field is unreachable !
-					logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingStartRowField",
+					logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.ErrorFindingStartRowField",
 							meta.getFileNameField()));
-					throw new KettleException(Messages.getString(
+					throw new KettleException(BaseMessages.getString( PKG, 
 							"ReadExcelHeaderDialog.Exception.CouldnotFindStartRowField", meta.getStartRowFieldName()));
 				}
 				startRow = Integer.parseInt(data.inputRowMeta.getString(r, indexOfStartRowField));
@@ -233,7 +229,7 @@ public class ReadExcelHeader extends BaseStep {
 					data.readrow = getRow(); // Get row from input rowset & set row busy!
 					if (data.readrow == null) {
 						if (log.isDetailed()) {
-							logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+							logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FinishedProcessing"));
 						}
 						return false;
 					}
@@ -247,8 +243,8 @@ public class ReadExcelHeader extends BaseStep {
 
 					// Check is start field is provided
 					if (Utils.isEmpty(meta.getStartRowFieldName())) {
-						logError(Messages.getString("ReadExcelHeaderDialog.Log.NoStartRowField"));
-						throw new KettleException(Messages.getString("ReadExcelHeaderDialog.Log.NoStartRowField"));
+						logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoStartRowField"));
+						throw new KettleException(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoStartRowField"));
 					}
 
 				}
@@ -257,7 +253,7 @@ public class ReadExcelHeader extends BaseStep {
 					// finished processing!
 
 					if (log.isDetailed()) {
-						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+						logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FinishedProcessing"));
 					}
 					return false;
 				}
@@ -270,7 +266,7 @@ public class ReadExcelHeader extends BaseStep {
 				}
 				if (data.readrow == null) {
 					if (log.isDetailed()) {
-						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FinishedProcessing"));
+						logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FinishedProcessing"));
 					}
 					return false;
 				}
@@ -287,8 +283,8 @@ public class ReadExcelHeader extends BaseStep {
 
 					// Check is filename field is provided
 					if (Utils.isEmpty(meta.getFileNameField())) {
-						logError(Messages.getString("ReadExcelHeaderDialog.Log.NoField"));
-						throw new KettleException(Messages.getString("ReadExcelHeaderDialog.Log.NoField"));
+						logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoField"));
+						throw new KettleException(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoField"));
 					}
 
 					// cache the position of the field
@@ -296,9 +292,9 @@ public class ReadExcelHeader extends BaseStep {
 						data.indexOfFilenameField = getInputRowMeta().indexOfValue(meta.getFileNameField());
 						if (data.indexOfFilenameField < 0) {
 							// The field is unreachable !
-							logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField",
+							logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.ErrorFindingField",
 									meta.getFileNameField()));
-							throw new KettleException(Messages.getString(
+							throw new KettleException(BaseMessages.getString( PKG, 
 									"ReadExcelHeaderDialog.Exception.CouldnotFindField", meta.getFileNameField()));
 						}
 					}
@@ -308,10 +304,10 @@ public class ReadExcelHeader extends BaseStep {
 							data.indexOfWildcardField = data.inputRowMeta.indexOfValue(meta.getDynamicWildcardField());
 							if (data.indexOfWildcardField < 0) {
 								// The field is unreachable !
-								logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
+								logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
 										+ meta.getDynamicWildcardField() + "]");
 								throw new KettleException(
-										Messages.getString("ReadExcelHeaderDialog.Exception.CouldnotFindField",
+										BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Exception.CouldnotFindField",
 												meta.getDynamicWildcardField()));
 							}
 						}
@@ -323,10 +319,10 @@ public class ReadExcelHeader extends BaseStep {
 									.indexOfValue(meta.getDynamicExcludeWildcardField());
 							if (data.indexOfExcludeWildcardField < 0) {
 								// The field is unreachable !
-								logError(Messages.getString("ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
+								logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.ErrorFindingField") + "["
 										+ meta.getDynamicExcludeWildcardField() + "]");
 								throw new KettleException(
-										Messages.getString("ReadExcelHeaderDialog.Exception.CouldnotFindField",
+										BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Exception.CouldnotFindField",
 												meta.getDynamicExcludeWildcardField()));
 							}
 						}
@@ -346,11 +342,11 @@ public class ReadExcelHeader extends BaseStep {
 						excludewildcard = getInputRowMeta().getString(data.readrow, data.indexOfExcludeWildcardField);
 					}
 					if (log.isDetailed()) {
-						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+						logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FilenameInStream",
 								meta.getFileNameField(), filename));
-						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+						logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FilenameInStream",
 								meta.getDynamicWildcardField(), wildcard));
-						logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.FilenameInStream",
+						logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.FilenameInStream",
 								meta.getDynamicExcludeWildcardField(), excludewildcard));
 					}
 
@@ -364,7 +360,7 @@ public class ReadExcelHeader extends BaseStep {
 							includesubfolders);
 					data.filessize = data.files.nrOfFiles();
 					if (meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
-						logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
+						logBasic(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoFile"));
 						return false;
 					}
 					data.filenr = 0;
@@ -388,16 +384,16 @@ public class ReadExcelHeader extends BaseStep {
 			data.filenr++;
 
 			if (log.isDetailed()) {
-				logDetailed(Messages.getString("ReadExcelHeaderDialog.Log.OpeningFile", data.file.toString()));
+				logDetailed(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.OpeningFile", data.file.toString()));
 			}
 
 			// if ( log.isDetailed() ) {
-			// logDetailed( Messages.getString( "ReadExcelHeaderDialog.Log.FileOpened",
+			// logDetailed( BaseMessages.getString( PKG,  "ReadExcelHeaderDialog.Log.FileOpened",
 			// data.file.toString() ) );
 			// }
 
 		} catch (Exception e) {
-			logError(Messages.getString("ReadExcelHeaderDialog.Log.UnableToOpenFile", "" + e.toString()));
+			logError(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.UnableToOpenFile", "" + e.toString()));
 			stopAll();
 			setErrors(1);
 			return false;
@@ -407,7 +403,7 @@ public class ReadExcelHeader extends BaseStep {
 
 	private void handleMissingFiles() throws KettleException {
 		if (!meta.isdoNotFailIfNoFile() && data.files.nrOfFiles() == 0) {
-			logBasic(Messages.getString("ReadExcelHeaderDialog.Log.NoFile"));
+			logBasic(BaseMessages.getString( PKG, "ReadExcelHeaderDialog.Log.NoFile"));
 			return;
 		}
 		List<FileObject> nonExistantFiles = data.files.getNonExistantFiles();

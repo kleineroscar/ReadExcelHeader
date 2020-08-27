@@ -19,11 +19,14 @@
 package de.oheimbrecht.ReadExcelHeader;
 
 import org.apache.commons.vfs2.FileObject;
-import org.pentaho.di.core.fileinput.FileInputList;
-import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.trans.step.BaseStepData;
+import org.apache.hop.core.fileinput.FileInputList;
+import org.apache.hop.core.playlist.IFilePlayList;
+import org.apache.hop.core.row.IRowMeta;
+import org.apache.hop.pipeline.transform.BaseTransformData;
+import org.apache.hop.pipeline.transform.ITransformData;
+import org.apache.hop.pipeline.transform.errorhandling.IFileErrorHandler;
 
-public class ReadExcelHeaderData extends BaseStepData {
+public class ReadExcelHeaderData extends BaseTransformData implements ITransformData {
 	public RowMetaInterface outputRowMeta;
 	public Object[] readrow;
 	public int filenr;
@@ -36,6 +39,10 @@ public class ReadExcelHeaderData extends BaseStepData {
 	public int indexOfWildcardField;
 	public int indexOfExcludeWildcardField;
 	public int filessize;
+	public int nrTransformFields;
+	public int nrLinesOnPage;
+	public int nr_repeats;
+	public Object[] previous_row;
 
 	public ReadExcelHeaderData() {
 			super();
@@ -45,7 +52,14 @@ public class ReadExcelHeaderData extends BaseStepData {
 			indexOfFilenameField = -1;
 			indexOfWildcardField = -1;
 			indexOfExcludeWildcardField = -1;
+			
+			nrTransformFields = 0;
+			nrLinesOnPage = 0;
+
 			filessize = 0;
 			filenr = 0;
+
+			nr_repeats = 0;
+    		previous_row = null;
 		}
 }
