@@ -21,7 +21,6 @@ package de.oheimbrecht.ReadExcelHeader;
 import org.apache.hop.core.Const;
 import org.apache.hop.core.Props;
 import org.apache.hop.core.exception.HopException;
-import org.apache.hop.core.fileinput.FileInputList;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.util.Utils;
 import org.apache.hop.i18n.BaseMessages;
@@ -41,12 +40,13 @@ import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.*;
+import org.eclipse.swt.graphics.Cursor;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.*;
 
-public class ReadExcelHeaderDialog extends BaseStepDialog implements StepDialogInterface {
+public class ReadExcelHeaderDialog extends BaseTransformDialog implements ITransformDialog {
 	private static Class<?> PKG = ReadExcelHeader.class; // for i18n purposes, needed by Translator!!
 private static final String[] YES_NO_COMBO = new String[] {
     BaseMessages.getString( PKG, "System.Combo.No" ), BaseMessages.getString( PKG, "System.Combo.Yes" ) };
@@ -130,6 +130,7 @@ private static final String[] YES_NO_COMBO = new String[] {
   private Button wIncludeSubFolder;
   private FormData fdIncludeSubFolder;
 
+  private Group wStartRowGroup;
   private Label wLabelStepStartRow;
   private FormData wFormLabelStepStartRow, wFormStepStartRow, fdStartRow;
   private TextVar wTextStartRow;
@@ -142,6 +143,7 @@ private static final String[] YES_NO_COMBO = new String[] {
 	private CCombo wStartRowSelField;
 	private FormData fdStartRowSelField;
   
+  private Group wSampleRowsGroup;
   private Label wLabelStepSampleRows;
   private FormData wFormLabelStepSampleRows, wFormStepSampleRows, fdSampleRows;
   private TextVar wTextSampleRows;
@@ -150,8 +152,6 @@ private static final String[] YES_NO_COMBO = new String[] {
 	private FormData fdSeparator;
 
   private boolean getpreviousFields = false;
-
-  private Label wlAddResult;
 
   public ReadExcelHeaderDialog( Shell parent, Object in, PipelineMeta pipelineMeta, String sname ) {
     super( parent, (BaseTransformMeta) in, pipelineMeta, sname );
@@ -884,7 +884,7 @@ private static final String[] YES_NO_COMBO = new String[] {
 
 			wStartRowSelField.removeAll();
 
-			IRowMeta r = pipelineMeta.getPrevTransformFields(stepname);
+			IRowMeta r = pipelineMeta.getPrevTransformFields( transformName );
 			if (r != null) {
         wStartRowSelField.setItems( r.getFieldNames() );
       }
@@ -935,9 +935,6 @@ private static final String[] YES_NO_COMBO = new String[] {
   }
 
   private void ActiveFileField() {
-    if ( wFileField.getSelection() ) {
-      wLimit.setText( "0" );
-    }
     wlFilenameField.setEnabled( wFileField.getSelection() );
     wFilenameField.setEnabled( wFileField.getSelection() );
     wlWildcardField.setEnabled( wFileField.getSelection() );
@@ -959,8 +956,6 @@ private static final String[] YES_NO_COMBO = new String[] {
     wlFilenameList.setEnabled( !wFileField.getSelection() );
     wFilenameList.setEnabled( !wFileField.getSelection() );
     wPreview.setEnabled( !wFileField.getSelection() );
-    wlLimit.setEnabled( !wFileField.getSelection() );
-    wLimit.setEnabled( !wFileField.getSelection() );
     wlIncludeSubFolder.setEnabled( wFileField.getSelection() );
     wIncludeSubFolder.setEnabled( wFileField.getSelection() );
 
@@ -979,7 +974,7 @@ private static final String[] YES_NO_COMBO = new String[] {
 
       for ( int i = 0; i < meta.getFileName().length; i++ ) {
         wFilenameList.add( new String[] {
-          in.getFileName()[ i ], in.getFileMask()[ i ], in.getExludeFileMask()[ i ],
+          in.getFileName()[ i ], in.getFileMask()[ i ], in.getExcludeFileMask()[ i ],
           in.getRequiredFilesDesc( in.getFileRequired()[ i ] ),
           in.getRequiredFilesDesc( in.getIncludeSubFolders()[ i ] ) } );
       }
@@ -1001,7 +996,6 @@ private static final String[] YES_NO_COMBO = new String[] {
       if ( in.getDynamicExcludeWildcardField() != null ) {
         wExcludeWildcardField.setText( in.getDynamicExcludeWildcardField() );
       }
-      wLimit.setText( "" + in.getRowLimit() );
       wIncludeSubFolder.setSelection( in.isDynamicIncludeSubFolders() );
 
 
@@ -1009,9 +1003,11 @@ private static final String[] YES_NO_COMBO = new String[] {
     if (meta.isStartRowField()) {
       wStartRowSelField.setText(meta.getStartRowFieldName());
     } else {
-      wTextStartRow.setText(meta.getStartRow());
+      wTextStartRow.setText(String.valueOf(meta.getStartRow()));
     }
     wStartRowField.setSelection(meta.isStartRowField());
+
+    wTextSampleRows.setText(String.valueOf(meta.getSampleRows()));
 
     wTransformName.selectAll();
     wTransformName.setFocus();
@@ -1044,11 +1040,14 @@ private static final String[] YES_NO_COMBO = new String[] {
     in.setFileRequired( wFilenameList.getItems( 3 ) );
     in.setIncludeSubFolders( wFilenameList.getItems( 4 ) );
 
-    meta.setSampleRows(wTextSampleRows.getText());
+    in.setSampleRows(Integer.parseInt(wTextSampleRows.getText()));
 
-		meta.setStartRowField(wStartRowField.getSelection());
-		meta.setStartRowFieldName(wStartRowSelField.getText());
-		meta.setStartRow(wTextStartRow.getText());
+    in.setStartRowField(wStartRowField.getSelection());
+    if (in.isStartRowField()) {
+      in.setStartRowFieldName(wStartRowSelField.getText());
+    } else {
+      in.setStartRow(Integer.parseInt(wTextStartRow.getText()));
+    }
 
     in.setDynamicFilenameField( wFilenameField.getText() );
     in.setDynamicWildcardField( wWildcardField.getText() );
@@ -1099,3 +1098,4 @@ private static final String[] YES_NO_COMBO = new String[] {
       }
     }
   }
+}

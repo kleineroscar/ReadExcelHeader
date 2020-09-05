@@ -19,9 +19,8 @@
 package de.oheimbrecht.ReadExcelHeader;
 
 import org.apache.commons.vfs2.FileObject;
-import org.apache.commons.vfs2.FileType;
+import org.apache.commons.vfs2.provider.local.LocalFile;
 import org.apache.hop.core.Const;
-import org.apache.hop.core.ResultFile;
 import org.apache.hop.core.exception.HopException;
 import org.apache.hop.core.exception.HopTransformException;
 import org.apache.hop.core.fileinput.FileInputList;
@@ -35,12 +34,21 @@ import org.apache.hop.pipeline.PipelineMeta;
 import org.apache.hop.pipeline.transform.BaseTransform;
 import org.apache.hop.pipeline.transform.ITransform;
 import org.apache.hop.pipeline.transform.TransformMeta;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Date;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import org.apache.poi.xssf.usermodel.*;
+// import org.apache.poi.xssf.usermodel.*;
 
 /**
  * Read all sorts of text files, convert them to rows and writes these to one or more output streams.
@@ -51,6 +59,9 @@ import org.apache.poi.xssf.usermodel.*;
 public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExcelHeaderData> implements ITransform<ReadExcelHeaderMeta, ReadExcelHeaderData> {
 
   private static Class<?> PKG = ReadExcelHeaderMeta.class; // for i18n purposes, needed by Translator!!
+
+  private int startRow = -1;
+	private int sampleRows = -1;
 
   public ReadExcelHeader( TransformMeta transformMeta, ReadExcelHeaderMeta meta, ReadExcelHeaderData data, int copyNr, PipelineMeta pipelineMeta,
                        Pipeline pipeline ) {
@@ -175,55 +186,24 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
 
         // Clone current input row
         outputRow = data.readrow.clone();
+      } else {
+        if (meta.isStartRowField()) {
+					outputRow = data.readrow.clone();
+					outputRow = RowDataUtil.resizeArray(outputRow, data.outputRowMeta.size());
+				} else {
+					outputRow = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+				}
       }
       if ( data.filessize > 0 ) {
         
         data.file = data.files.getFile( data.filenr );
-
-
-
-        // filename
-        extraData[ outputIndex++ ] = HopVfs.getFilename( data.file );
-
-        // short_filename
-        extraData[ outputIndex++ ] = data.file.getName().getBaseName();
-
-        try {
-          // Path
-          extraData[ outputIndex++ ] = HopVfs.getFilename( data.file.getParent() );
-
-          // type
-          extraData[ outputIndex++ ] = data.file.getType().toString();
-
-
-          // lastmodifiedtime
-          extraData[ outputIndex++ ] = new Date( data.file.getContent().getLastModifiedTime() );
-
-          // size
-          Long size = null;
-          if ( data.file.getType().equals( FileType.FILE ) ) {
-            size = new Long( data.file.getContent().getSize() );
-          }
-
-          extraData[ outputIndex++ ] = size;
-
-        } catch ( IOException e ) {
-          throw new HopException( e );
-        }
-
-        // extension
-        extraData[ outputIndex++ ] = data.file.getName().getExtension();
-
-        // uri
-        extraData[ outputIndex++ ] = data.file.getName().getURI();
-
-        // rooturi
-        extraData[ outputIndex++ ] = data.file.getName().getRootURI();
+        InputStream excelFileInputStream = null;
+        XSSFWorkbook workbook1 = null;
 
         try {
           // HopVfs.getFilename( data.file )
 
-          FileObject fileObject = KettleVFS.getFileObject(KettleVFS.getFilename(data.file));
+          FileObject fileObject = HopVfs.getFileObject(HopVfs.getFilename(data.file));
           if (fileObject instanceof LocalFile) {
             //This might reduce memory usage
             logDebug("Local file");
@@ -244,11 +224,6 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
           throw new HopException("Couldn't read file provided.");
         }
     
-        if (workbook1 == null) {
-          log.logDebug("Supplied file: " + data.file);
-          throw new HopException("Could not read the file provided but received a file path (check Debug).");
-        }
-    
         for (int i = 0; i < workbook1.getNumberOfSheets(); i++) {
           XSSFSheet sheet;
           XSSFRow row;
@@ -259,6 +234,8 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
             sheet = workbook1.getSheetAt(i);
           } catch (Exception e) {
             log.logError("Unable to read sheet\n" + e.getMessage());
+            workbook1.close();
+            excelFileInputStream.close();
             throw new HopException("Could not read sheet with number: " + i);
           }
           try {
@@ -268,7 +245,7 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
           } catch (Exception e) {
             log.logDebug("Unable to read row.\nMaybe the row given is empty.\n Providing empty row.");
             extraData[ outputIndex++ ] = HopVfs.getFilename( data.file );
-            log.logRowlevel("Got workbook name: " + HopVfs.getFilename( data.file );
+            log.logRowlevel("Got workbook name: " + HopVfs.getFilename( data.file ));
             extraData[ outputIndex++ ] = workbook1.getSheetName(i);
             log.logRowlevel("Got sheet name: " + workbook1.getSheetName(i));
 
@@ -297,6 +274,8 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
               log.logRowlevel("Got workbook name: " + HopVfs.getFilename( data.file ));
             } catch (Exception e) {
               log.logDebug(e.getMessage());
+              workbook1.close();
+              excelFileInputStream.close();
               throw new HopException("Some error while getting the file string" + HopVfs.getFilename( data.file ));
             }
             try {
@@ -304,7 +283,9 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
               log.logRowlevel("Got sheet name: " + workbook1.getSheetName(i));
             } catch (Exception e) {
               log.logDebug(e.getMessage());
-              throw new KettleStepException("Some error while getting the values. With Sheetnumber:" + String.valueOf(i));
+              workbook1.close();
+              excelFileInputStream.close();
+              throw new HopException("Some error while getting the values. With Sheetnumber:" + String.valueOf(i));
             }
             try{
               extraData[ outputIndex++ ] = row.getCell(j).toString();
@@ -358,13 +339,13 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
         try {
           workbook1.close();
         } catch (Exception e) {
-          new KettleException("Could not dispose workbook.\n" + e.getMessage());
+          new HopException("Could not dispose workbook.\n" + e.getMessage());
         }
     
         try {
-          file1InputStream.close();
+          excelFileInputStream.close();
         } catch (IOException e) {
-          new KettleException("Could not dispose FileInputStream.\n" + e.getMessage());
+          new HopException("Could not dispose FileInputStream.\n" + e.getMessage());
         }
 
       }
@@ -432,6 +413,15 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
 
       data.filenr = 0;
       data.totalpreviousfields = 0;
+
+      try {
+				sampleRows = Integer.parseInt(environmentSubstitute(String.valueOf(meta.getSampleRows())));
+				logDebug("Received StartRow: " + startRow + " SampleRows: " + sampleRows);
+			} catch (NumberFormatException nfe) {
+				logError("SampleRows couldn't be parsed");
+				logDebug("SampleRow: " + meta.getSampleRows());
+				return false;
+			}
 
       return true;
 

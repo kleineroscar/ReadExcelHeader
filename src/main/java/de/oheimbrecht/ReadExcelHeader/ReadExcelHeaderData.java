@@ -20,19 +20,17 @@ package de.oheimbrecht.ReadExcelHeader;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.hop.core.fileinput.FileInputList;
-import org.apache.hop.core.playlist.IFilePlayList;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.pipeline.transform.BaseTransformData;
 import org.apache.hop.pipeline.transform.ITransformData;
-import org.apache.hop.pipeline.transform.errorhandling.IFileErrorHandler;
 
 public class ReadExcelHeaderData extends BaseTransformData implements ITransformData {
-	public RowMetaInterface outputRowMeta;
+	public IRowMeta outputRowMeta;
 	public Object[] readrow;
 	public int filenr;
 	public FileInputList files;
 	public FileObject file;
-	public RowMetaInterface inputRowMeta;
+	public IRowMeta inputRowMeta;
 	public int totalpreviousfields;
 	public int indexOfFilenameField;
 	public int indexOfWildcardField;

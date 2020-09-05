@@ -29,9 +29,6 @@ import org.apache.hop.core.exception.HopXmlException;
 import org.apache.hop.core.fileinput.FileInputList;
 import org.apache.hop.core.row.IRowMeta;
 import org.apache.hop.core.row.IValueMeta;
-import org.apache.hop.core.row.value.ValueMetaBoolean;
-import org.apache.hop.core.row.value.ValueMetaDate;
-import org.apache.hop.core.row.value.ValueMetaInteger;
 import org.apache.hop.core.row.value.ValueMetaString;
 import org.apache.hop.core.util.Utils;
 import org.apache.hop.core.variables.IVariables;
@@ -256,14 +253,6 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
     this.excludeFileMask = excludeFileMask;
   }
 
-  /**
-   * @return Returns the excludeFileMask.
-   * Deprecated due to typo
-   */
-  @Deprecated
-  public String[] getExludeFileMask() {
-    return excludeFileMask;
-  }
 
   /**
    * @return Returns the excludeFileMask.
@@ -320,7 +309,7 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
   /**
    * @param startRowFieldName The startRowFieldName to set.
    */
-  public void setStarRowFieldName( String startRowFieldName ) {
+  public void setStartRowFieldName( String startRowFieldName ) {
       this.startRowFieldName = startRowFieldName;
   }
 
@@ -500,10 +489,10 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
     }
     retval.append( "    </file>" ).append( Const.CR );
 
-    retval.append("    ").append(XMLHandler.addTagValue("startrowfield", startrowfield));
-    retval.append("    ").append(XMLHandler.addTagValue("startrowfieldname", startRowFieldName));
-    retval.append("   " + XMLHandler.addTagValue("startrow", startRow));
-    retval.append("   " + XMLHandler.addTagValue("sampleRows", sampleRows));
+    retval.append( "    " ).append( XmlHandler.addTagValue("startrowfield", startrowfield) );
+    retval.append( "    " ).append( XmlHandler.addTagValue("startrowfieldname", startRowFieldName) );
+    retval.append( "    " ).append( XmlHandler.addTagValue( "startrow", startRow ) );
+    retval.append( "    " ).append( XmlHandler.addTagValue( "sampleRows", sampleRows ) );
     return retval.toString();
   }
 
@@ -535,10 +524,14 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
         includeSubFolders[ i ] = XmlHandler.getNodeValue( includeSubFoldersnode );
       }
 
-      startrowfield = "Y".equalsIgnoreCase(XMLHandler.getTagValue(stepnode, "startrowfield"));
-      startRowFieldName = XMLHandler.getTagValue(stepnode, "startrowfieldname");
-      startRow = Integer.parseInt(XMLHandler.getTagValue(stepnode, "startrow"));
-      sampleRows = Integer.parseInt(XMLHandler.getTagValue(stepnode, "sampleRows"));
+      startrowfield = "Y".equalsIgnoreCase(XmlHandler.getTagValue(filenode, "startrowfield"));
+
+      if (isStartRowField()) {
+        startRowFieldName = XmlHandler.getTagValue(filenode, "startrowfieldname");
+      } else {
+        startRow = Integer.parseInt(XmlHandler.getTagValue(filenode, "startrow"));
+      }
+      sampleRows = Integer.parseInt(XmlHandler.getTagValue(filenode, "sampleRows"));
     } catch ( Exception e ) {
       throw new HopXmlException( "Unable to load transform info from XML", e );
     }
@@ -633,27 +626,27 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
 
     if ( startrowfield) {
         if (!startRowFieldName.isEmpty()) {
-            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a field with a row to start on.", stepMeta);
+            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a field with a row to start on.", transformMeta);
             remarks.add(cr);
         } else {
-            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row field received!", stepMeta);
+            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row field received!", transformMeta);
             remarks.add(cr);
         }
     } else {
-        if (!startRow.isEmpty()) {
-            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", stepMeta);
+        if (startRow != -1) {
+            cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received a row to start on.", transformMeta);
             remarks.add(cr);
         } else {
-            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", stepMeta);
+            cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No start row received!", transformMeta);
             remarks.add(cr);
         }
     }
 
-    if (!sampleRows.isEmpty()) {
-        cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received number of rows to sample on.", stepMeta);
+    if (sampleRows != -1) {
+        cr = new CheckResult(CheckResult.TYPE_RESULT_OK, "Step received number of rows to sample on.", transformMeta);
         remarks.add(cr);
     } else {
-        cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No number of sample rows received!", stepMeta);
+        cr = new CheckResult(CheckResult.TYPE_RESULT_ERROR, "No number of sample rows received!", transformMeta);
         remarks.add(cr);
     }
   }
