@@ -34,7 +34,6 @@ public class ReadExcelHeaderData extends BaseTransformData implements ITransform
 	public FileObject file;
 	public RowMetaInterface inputRowMeta;
 	public int totalpreviousfields;
-	public long rownr;
 	public int indexOfFilenameField;
 	public int indexOfWildcardField;
 	public int indexOfExcludeWildcardField;
