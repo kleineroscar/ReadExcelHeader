@@ -126,7 +126,7 @@
 							<finalName>${project.artifactId}</finalName>
 							<appendAssemblyId>false</appendAssemblyId>
 							<descriptors>
-								<descriptor>assembly/plugin.xml</descriptor>
+								<descriptor>assembly/assembly.xml</descriptor>
 							</descriptors>
 						</configuration>
 					</execution>
@@ -218,23 +218,23 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
 			<version>${poi.version}</version>
-            <!-- <exclusions>
+            <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
-            </exclusions> -->
+            </exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>${poi.version}</version>
-            <!-- <exclusions>
+            <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
-            </exclusions> -->
+            </exclusions>
 		</dependency>
 
         <dependency>
@@ -285,4 +285,19 @@
 		</dependency> -->
     </dependencies>
 
+    <repositories>
+        <repository>
+          <id>hop</id>
+          <name>Hop Repository</name>
+          <url>https://artifactory.project-hop.org/artifactory/hop-releases/</url>
+          <releases>
+            <enabled>true</enabled>
+            <updatePolicy>daily</updatePolicy>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+            <updatePolicy>interval:15</updatePolicy>
+          </snapshots>
+        </repository>
+    </repositories>
 </project>

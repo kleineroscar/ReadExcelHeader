@@ -156,8 +156,7 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
     } 
 
     try {
-      Object[] outputRow = buildEmptyRow();
-      Object[] extraData = new Object[ data.nrTransformFields ];
+      Object[] inputRow = buildEmptyRow();
       if ( meta.isFileField() ) {
         if ( data.filenr >= data.filessize ) {
           // Get value of dynamic filename field ...
@@ -185,15 +184,43 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
         }
 
         // Clone current input row
-        outputRow = data.readrow.clone();
+        inputRow = data.readrow.clone();
       } else {
         if (meta.isStartRowField()) {
-					outputRow = data.readrow.clone();
-					outputRow = RowDataUtil.resizeArray(outputRow, data.outputRowMeta.size());
+					inputRow = data.readrow.clone();
+					inputRow = RowDataUtil.resizeArray(inputRow, data.outputRowMeta.size());
 				} else {
-					outputRow = RowDataUtil.allocateRowData(data.outputRowMeta.size());
+					inputRow = RowDataUtil.allocateRowData(data.outputRowMeta.size());
 				}
       }
+      int indexOfStartRowField = -1;
+		  try {
+		  	if (meta.isStartRowField()) {
+		  		indexOfStartRowField = data.inputRowMeta.indexOfValue(meta.getStartRowFieldName());
+		  		if (indexOfStartRowField < 0) {
+		  			// The field is unreachable !
+		  			logError(BaseMessages.getString( PKG, "ReadExcelHeader.Log.ErrorFindingStartRowField",
+		  					meta.getStartRowFieldName()));
+		  			throw new HopException(BaseMessages.getString( PKG, 
+		  					"ReadExcelHeader.Exception.CouldnotFindStartRowField", meta.getStartRowFieldName()));
+		  		}
+		  		startRow = Integer.parseInt(data.inputRowMeta.getString(inputRow, indexOfStartRowField));
+		  	} else {
+		  		startRow = Integer.parseInt(environmentSubstitute(String.valueOf(meta.getStartRow())));
+		  	}
+		  } catch (NumberFormatException nfe) {
+		  	logError("StartRow couldn't be parsed");
+		  	logDebug("Startrow: " + meta.getStartRow());
+		  	logDebug("Startrow from field: " + data.inputRowMeta.getString(inputRow, indexOfStartRowField));
+		  	logDebug("Startrow field index: " + indexOfStartRowField);
+		  	throw new HopException("StartRow couldn't be parsed.");
+		  } catch (Exception e) {
+		  	logDebug("Isstartrowfield: " + meta.isStartRowField());
+		  	logDebug("startrowfieldname: " + meta.getStartRowFieldName());
+		  	logDebug("startrow: " + meta.getStartRow());
+		  	logDebug("data.inputRowMeta null?: " + (data.inputRowMeta == null ? "yes" : "no"));
+		  	throw new HopException("Some other error while parsing startRow" + e.getMessage());
+		  }
       if ( data.filessize > 0 ) {
         
         data.file = data.files.getFile( data.filenr );
@@ -229,6 +256,7 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
           XSSFRow row;
 
           int outputIndex = 0;
+          Object[] extraData = new Object[ data.nrTransformFields ];
     
           try {
             sheet = workbook1.getSheetAt(i);
@@ -253,30 +281,28 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
             extraData[ outputIndex++ ] = "NO DATA";
             extraData[ outputIndex++ ] = "NO DATA";
             extraData[ outputIndex++ ] = "NO DATA";
+            // put the row to the output row stream
+            log.logRowlevel(
+                "Created the following row: " + Arrays.toString(extraData));
+            // Add row data
+            Object[] resultRow = RowDataUtil.addRowData( inputRow, data.totalpreviousfields, extraData );
+            // Send row
+            putRow( data.outputRowMeta, resultRow );
     
-            try {
-              workbook1.close();
-            } catch (Exception wce) {
-              new HopException("Could not dispose workbook.\n" + wce.getMessage());
-            }
-            try {
-              excelFileInputStream.close();
-            } catch (IOException fce) {
-              new HopException("Could not dispose FileInputStream.\n" + fce.getMessage());
-            }
             continue;
           }
           for (short j = row.getFirstCellNum(); j < row.getLastCellNum(); j++) {
+            outputIndex = 0;
             // generate output row, make it correct size
             try {
               log.logRowlevel("Processing the next cell with number: " + j);
               extraData[ outputIndex++ ] = HopVfs.getFilename( data.file );
               log.logRowlevel("Got workbook name: " + HopVfs.getFilename( data.file ));
             } catch (Exception e) {
-              log.logDebug(e.getMessage());
+              log.logDebug( e.getMessage() );
               workbook1.close();
               excelFileInputStream.close();
-              throw new HopException("Some error while getting the file string" + HopVfs.getFilename( data.file ));
+              throw new HopException("Some error while getting the file string " + HopVfs.getFilename( data.file ));
             }
             try {
               extraData[ outputIndex++ ] = workbook1.getSheetName(i);
@@ -288,7 +314,9 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
               throw new HopException("Some error while getting the values. With Sheetnumber:" + String.valueOf(i));
             }
             try{
-              extraData[ outputIndex++ ] = row.getCell(j).toString();
+              // Split this into two statements so outputIndex does not incremented imediately
+              String tempString = row.getCell(j).toString();
+              extraData[ outputIndex++ ] = tempString;
               log.logRowlevel("Got cell header: " + row.getCell(j).toString());
             } catch (Exception e) {
               log.logDebug("Some error while getting the values. With Sheetnumber:" + String.valueOf(i)
@@ -330,9 +358,9 @@ public class ReadExcelHeader extends BaseTransform<ReadExcelHeaderMeta, ReadExce
             log.logRowlevel(
                 "Created the following row: " + Arrays.toString(extraData) + " ; number of different data formats=" + cellInfo.size());
             // Add row data
-            outputRow = RowDataUtil.addRowData( outputRow, data.totalpreviousfields, extraData );
+            Object[] resultRow = RowDataUtil.addRowData( inputRow, data.totalpreviousfields, extraData );
             // Send row
-            putRow( data.outputRowMeta, outputRow );
+            putRow( data.outputRowMeta, resultRow );
           }
         }
 

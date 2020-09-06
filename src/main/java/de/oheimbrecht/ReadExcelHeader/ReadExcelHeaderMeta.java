@@ -524,14 +524,14 @@ public class ReadExcelHeaderMeta extends BaseTransformMeta implements ITransform
         includeSubFolders[ i ] = XmlHandler.getNodeValue( includeSubFoldersnode );
       }
 
-      startrowfield = "Y".equalsIgnoreCase(XmlHandler.getTagValue(filenode, "startrowfield"));
+      startrowfield = "Y".equalsIgnoreCase(XmlHandler.getTagValue(transformNode, "startrowfield"));
 
       if (isStartRowField()) {
-        startRowFieldName = XmlHandler.getTagValue(filenode, "startrowfieldname");
+        startRowFieldName = XmlHandler.getTagValue(transformNode, "startrowfieldname");
       } else {
-        startRow = Integer.parseInt(XmlHandler.getTagValue(filenode, "startrow"));
+        startRow = Integer.parseInt(XmlHandler.getTagValue(transformNode, "startrow"));
       }
-      sampleRows = Integer.parseInt(XmlHandler.getTagValue(filenode, "sampleRows"));
+      sampleRows = Integer.parseInt(XmlHandler.getTagValue(transformNode, "sampleRows"));
     } catch ( Exception e ) {
       throw new HopXmlException( "Unable to load transform info from XML", e );
     }
